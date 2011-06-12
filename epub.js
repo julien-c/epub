@@ -20,8 +20,8 @@ function EPub(fname, imageroot, linkroot){
     EventEmitter.call(this);
     this.filename = fname;
 
-    this.imageroot = (imageroot || "/images/").trim();
-    this.linkroot = (linkroot || "/links/").trim();
+    this.imageroot = (imageroot || "/images/").trim();
+    this.linkroot = (linkroot || "/links/").trim();
 
     if(this.imageroot.substr(-1)!="/")this.imageroot+="/";
     if(this.linkroot.substr(-1)!="/")this.linkroot+="/";
@@ -269,53 +269,53 @@ EPub.prototype.parseMetadata = function(metadata){
         switch(key){
             case "publisher":
                 if(Array.isArray(metadata[keys[i]])){
-                    this.metadata.publisher = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+                    this.metadata.publisher = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
                 }else{
-                    this.metadata.publisher = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                    this.metadata.publisher = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
                 }                
                 break;
             case "language":
                 if(Array.isArray(metadata[keys[i]])){
-                    this.metadata.language = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").toLowerCase().trim();
+                    this.metadata.language = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").toLowerCase().trim();
                 }else{
-                    this.metadata.language = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").toLowerCase().trim();
+                    this.metadata.language = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").toLowerCase().trim();
                 }
                 break;
             case "title":
                 if(Array.isArray(metadata[keys[i]])){
-                    this.metadata.title = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+                    this.metadata.title = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
                 }else{
-                    this.metadata.title = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                    this.metadata.title = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
                 }
                 break;
             case "subject":
                 if(Array.isArray(metadata[keys[i]])){
-                    this.metadata.subject = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+                    this.metadata.subject = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
                 }else{
-                    this.metadata.subject = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                    this.metadata.subject = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
                 }
                 break;
             case "description":
                 if(Array.isArray(metadata[keys[i]])){
-                    this.metadata.description = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+                    this.metadata.description = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
                 }else{
-                    this.metadata.description = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                    this.metadata.description = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
                 }
                 break;
             case "creator":
                 if(Array.isArray(metadata[keys[i]])){
-                    this.metadata.creator = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+                    this.metadata.creator = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
                     this.metadata.creatorFileAs = String(metadata[keys[i]][0] && metadata[keys[i]][0]['@'] && metadata[keys[i]][0]['@']["opf:file-as"] || this.metadata.creator).trim();
                 }else{
-                    this.metadata.creator = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                    this.metadata.creator = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
                     this.metadata.creatorFileAs = String(metadata[keys[i]]['@'] && metadata[keys[i]]['@']["opf:file-as"] || this.metadata.creator).trim();
                 }
                 break;
             case "date":
                 if(Array.isArray(metadata[keys[i]])){
-                    this.metadata.date = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+                    this.metadata.date = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
                 }else{
-                    this.metadata.date = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                    this.metadata.date = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
                 }
                 break;
             case "identifier":
@@ -514,10 +514,8 @@ EPub.prototype.getChapter = function(id, callback){
             // replace links
             str = str.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (function(o, a, b, c){
                 var linkparts = b && b.split("#"),
-                    link = path.concat([(linkparts.shift() || "")]).join("/").trim(),
+                    link = path.concat([(linkparts.shift() || "")]).join("/").trim(),
                     element;
-
-                    console.log(link, linkparts.join("#"));
 
                 for(var i=0, len=keys.length; i<len; i++){
                     if(this.manifest[keys[i]].href.split("#")[0] == link){
@@ -564,13 +562,4 @@ epub.on("end", function(err){
 });
 
 epub.parse();
-
-
-/*
-for(var i=0, len = this.zip.names.length; i<len; i++){
-        
-    }
-
-
-*/
 
