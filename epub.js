@@ -4,6 +4,11 @@ var ZipFile = require("zipfile").ZipFile,
     EventEmitter = require('events').EventEmitter;
 
 
+//TODO: Cache parsed data to DB
+
+// export
+module.exports = EPub;
+
 /**
  *  new EPub(fname[, imageroot][, linkroot])
  *  - fname (String): filename for the ebook
@@ -13,7 +18,10 @@ var ZipFile = require("zipfile").ZipFile,
  *  Creates an Event Emitter type object for parsing epub files
  *
  *      var epub = new EPub("book.epub");
- *      epub.on("end", function(){ ... });
+ *      epub.on("end", function(){
+ *           console.log(epub.spine);
+ *      });
+ *      epub.on("error", function(error){ ... });
  *      epub.parse();
  **/
 function EPub(fname, imageroot, linkroot){
@@ -458,7 +466,7 @@ EPub.prototype.walkNavMap = function(branch, path, level){
             }
         }
         if(branch[i]["navPoint"]){
-            output = output.concat(this.walkNavMap(branch[i]["navPoint"], path, level+1));
+            output = output.concat(this.walkNavMap(branch[i]["navPoint"], path, level + 1));
         }
     }
     return output;
@@ -543,23 +551,24 @@ EPub.prototype.getChapter = function(id, callback){
     }
 }
 
-var epub = new EPub("img.epub", "tere", "vana");
-epub.on("error", function(err){
-    console.log("ERROR\n-----");
-    throw err;
-});
 
-epub.on("end", function(err){
-    console.log("PARSED\n-----");
-    console.log(epub.metadata);
-    console.log(epub.manifest);
-    console.log(epub.spine);
-    console.log(epub.toc);
+/**
+ *  EPub#getImage(id, callback) -> undefined
+ *  - id (String): Manifest id value for an image
+ *  - callback (Function): callback function
+ *
+ *  Finds an image an id. Returns the image as Buffer. Callback gets
+ *  an error object, image buffer and image content-type
+ **/
+EPub.prototype.getImage = function(id, callback){
+    if(this.manifest[id]){
+        this.zip.readFile(this.manifest[id].href, (function(err, data){
+            if(err){
+                callback(new Error("Reading archive failed"));
+                return;
+            }
 
-    epub.getChapter("item259", function(err, data){
-        console.log(err || data);
-    });
-});
-
-epub.parse();
-
+            callback(null, data, this.manifest[id]['media-type']);
+        }).bind(this));
+    }
+}
