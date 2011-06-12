@@ -23,6 +23,16 @@ module.exports = EPub;
  *      });
  *      epub.on("error", function(error){ ... });
  *      epub.parse();
+ *
+ *  Image and link URL format is:
+ *
+ *      imageroot + img_id + img_zip_path
+ *
+ *  So an image "logo.jpg" which resides in "OPT/" in the zip archive
+ *  and is listed in the manifest with id "logo_img" will have the 
+ *  following url (providing that imageroot is "/images/"):
+ *
+ *      /images/logo_img/OPT/logo.jpg
  **/
 function EPub(fname, imageroot, linkroot){
     EventEmitter.call(this);
@@ -493,9 +503,27 @@ EPub.prototype.getChapter = function(id, callback){
 
             var str = data.toString("utf-8");
 
-            // strip <body>
-            str.replace(/\n/g,"\u0000").replace(/<body[^>]*?>(.*)<\/body[^>]*?>/i, function(o,d){
-                str = d.replace(/\u0000/g,"\n").trim();
+            // remove linebreaks (no multi line matches in JS regex!)
+            str = str.replace(/\r?\n/g,"\u0000");
+
+            // keep only <body> contents
+            str.replace(/<body[^>]*?>(.*)<\/body[^>]*?>/i, function(o,d){
+                str = d.trim();
+            });
+
+            // remove <script> blocks if any
+            str = str.replace(/<script[^>]*?>(.*?)<\/script[^>]*?>/ig, function(o, s){
+                return "";
+            });
+
+            // remove <style> blocks if any
+            str = str.replace(/<style[^>]*?>(.*?)<\/style[^>]*?>/ig, function(o, s){
+                return "";
+            });
+
+            // remove onEvent handlers
+            str = str.replace(/(\s)(on\w+)(\s*=\s*["']?[^"'\s>]*?["'\s>])/g, function(o, a,b,c){
+                return a + "skip-" + b + c;
             });
 
             // replace images
@@ -544,6 +572,9 @@ EPub.prototype.getChapter = function(id, callback){
                 }
                 
             }).bind(this));
+
+            // bring back linebreaks
+            str = str.replace(/\u0000/g,"\n").trim();
 
             callback(null, str);
 
