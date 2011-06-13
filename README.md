@@ -60,7 +60,7 @@ Available fields:
 Chapter `id` is needed to load the chapters `getChapter`
 
 ## toc
-*flow* is a property of the *epub* object and indicates a list of titles/urls for the TOC. Actual chapter and it's ID needs to be detected with the `href` property
+*toc* is a property of the *epub* object and indicates a list of titles/urls for the TOC. Actual chapter and it's ID needs to be detected with the `href` property
 
 
 ## getChapter(chapter_id, callback)
