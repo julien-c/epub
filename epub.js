@@ -60,6 +60,7 @@ EPub.prototype.parse = function () {
     this.metadata = {};
     this.manifest = {};
     this.spine    = {toc: false, contents: []};
+    this.flow = [];
     this.toc = [];
 
     this.open();
@@ -248,7 +249,6 @@ EPub.prototype.handleRootFile = function () {
 EPub.prototype.parseRootFile = function (rootfile) {
 
     var i, len, keys, keyparts, key;
-
     keys = Object.keys(rootfile);
     for (i = 0, len = keys.length; i < len; i++) {
         keyparts = keys[i].split(":");
@@ -401,6 +401,9 @@ EPub.prototype.parseSpine = function (spine) {
     }
 
     if (spine.itemref) {
+        if(!Array.isArray(spine.itemref)){
+            spine.itemref = [spine.itemref];
+        }
         for (i = 0, len = spine.itemref.length; i < len; i++) {
             if (spine.itemref[i]['@']) {
                 if (element = this.manifest[spine.itemref[i]['@'].idref]) {
@@ -409,6 +412,7 @@ EPub.prototype.parseSpine = function (spine) {
             }
         }
     }
+    this.flow = this.spine.contents;
 };
 
 /**
