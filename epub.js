@@ -514,13 +514,18 @@ EPub.prototype.walkNavMap = function(branch, path, id_list, level){
  *  - callback (Function): callback function
  *
  *  Finds a chapter text for an id. Replaces image and link URL's, removes
- *  <head> etc. elements
+ *  <head> etc. elements. Return only chapters with mime type application/xhtml+xml
  **/
 EPub.prototype.getChapter = function(id, callback){
     var path = this.rootFile.split("/"), keys = Object.keys(this.manifest);
     path.pop();
 
     if(this.manifest[id]){
+        
+        if((this.manifest[id]['media-type'] || "").toLowerCase().trim() != "application/xhtml+xml"){
+            return callback(new Error("Inavlid mime type for chapter"));
+        }
+        
         this.zip.readFile(this.manifest[id].href, (function(err, data){
             if(err){
                 callback(new Error("Reading archive failed"));
@@ -605,6 +610,8 @@ EPub.prototype.getChapter = function(id, callback){
             callback(null, str);
 
         }).bind(this));
+    }else{
+        callback(new Error("File not found"));
     }
 }
 
@@ -615,10 +622,16 @@ EPub.prototype.getChapter = function(id, callback){
  *  - callback (Function): callback function
  *
  *  Finds an image an id. Returns the image as Buffer. Callback gets
- *  an error object, image buffer and image content-type
+ *  an error object, image buffer and image content-type.
+ *  Return only images with mime type image/*
  **/
 EPub.prototype.getImage = function(id, callback){
     if(this.manifest[id]){
+        
+        if((this.manifest[id]['media-type'] || "").toLowerCase().trim().substr(0,6) != "image/"){
+            return callback(new Error("Inavlid mime type for image"));
+        }
+        
         this.zip.readFile(this.manifest[id].href, (function(err, data){
             if(err){
                 callback(new Error("Reading archive failed"));
@@ -627,5 +640,7 @@ EPub.prototype.getImage = function(id, callback){
 
             callback(null, data, this.manifest[id]['media-type']);
         }).bind(this));
+    }else{
+        callback(new Error("File not found"));
     }
 }

@@ -1,6 +1,6 @@
 var EPub = require("./epub");
 
-var epub = new EPub("img.epub", "tere", "vana");
+var epub = new EPub("tasuja.epub", "tere", "vana");
 epub.on("error", function(err){
     console.log("ERROR\n-----");
     throw err;
