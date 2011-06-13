@@ -413,8 +413,13 @@ EPub.prototype.parseSpine = function(spine){
  *  Parses ncx file for table of contents (title, html file)
  **/
 EPub.prototype.parseTOC = function(){
-    var path = this.spine.toc.href.split("/");
+    var path = this.spine.toc.href.split("/"), id_list = {}, keys;
     path.pop();
+
+    keys = Object.keys(this.manifest);
+    for(var i=0, len = keys.length; i<len; i++){
+        id_list[this.manifest[keys[i]].href] = keys[i];
+    }
 
     this.zip.readFile(this.spine.toc.href, (function(err, data){
         if(err){
@@ -426,7 +431,7 @@ EPub.prototype.parseTOC = function(){
 
         xmlparser.on("end", (function(result){
             if(result.navMap && result.navMap.navPoint){
-                this.toc = this.walkNavMap(result.navMap.navPoint, path);
+                this.toc = this.walkNavMap(result.navMap.navPoint, path, id_list);
             }
 
             this.emit("end");
@@ -443,19 +448,22 @@ EPub.prototype.parseTOC = function(){
 }
 
 /**
- *  EPub#walkNavMap(branch, path[, level]) -> Array
+ *  EPub#walkNavMap(branch, path, id_list,[, level]) -> Array
  *  - branch (Array | Object): NCX NavPoint object
  *  - path (Array): Base path
+ *  - id_list (Object): map of file paths and id values
  *  - level (Number): deepness
  *
  *  Walks the NavMap object through all levels and finds elements
  *  for TOC
  **/
-EPub.prototype.walkNavMap = function(branch, path, level){
-    level || level || 0;
+EPub.prototype.walkNavMap = function(branch, path, id_list, level){
+    level = level || 0;
+    
+    // don't go too far
     if(level>7)return [];
 
-    var output = [], element;
+    var output = [], element, id, title, order, href;
 
     if(!Array.isArray(branch)){
         branch = [branch];
@@ -463,20 +471,38 @@ EPub.prototype.walkNavMap = function(branch, path, level){
 
     for(var i=0, len = branch.length; i<len; i++){
         if(branch[i]["navLabel"]){
+            
+            title = (branch[i]["navLabel"] && branch[i]["navLabel"].text || branch[i]["navLabel"] || "").trim();
+            order = Number(branch[i]["@"] && branch[i]["@"].playOrder || 0);
+            href = (branch[i]["content"] && branch[i]["content"]["@"] && branch[i]["content"]["@"].src || "").trim();
+            
             element = {
-                id: (branch[i]["@"] && branch[i]["@"].id || "").trim(),
-                order: Number(branch[i]["@"] && branch[i]["@"].playOrder || 0),
-                title: (branch[i]["navLabel"] && branch[i]["navLabel"].text || branch[i]["navLabel"] || "").trim(),
-                href: (branch[i]["content"] && branch[i]["content"]["@"] && branch[i]["content"]["@"].src || "").trim()
+                level: level,
+                order: order,
+                title: title
             }
 
-            if(element.href){
-                element.href = path.concat([element.href]).join("/");
+            if(href){
+                href = path.concat([href]).join("/")
+                element.href = href;
+                
+                if(id_list[element.href]){
+                    // link existing object
+                    element = this.manifest[id_list[element.href]];
+                    element.title = title;
+                    element.order = order;
+                    element.level = level;
+                }else{
+                    // use new one
+                    element.href = href;
+                    element.id =  (branch[i]["@"] && branch[i]["@"].id || "").trim();
+                }
+                   
                 output.push(element);
             }
         }
         if(branch[i]["navPoint"]){
-            output = output.concat(this.walkNavMap(branch[i]["navPoint"], path, level + 1));
+            output = output.concat(this.walkNavMap(branch[i]["navPoint"], path, id_list, level + 1));
         }
     }
     return output;
