@@ -10,6 +10,8 @@
 
 ## Usage
 
+	var EPub = require("epub");
+	
     var epub = new EPub(epubfile, imagewebroot, chapterwebroot);
 
 Where
