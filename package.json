@@ -23,7 +23,7 @@
     ],
     "dependencies": {
         "zipfile":"*",
-        "xml2js":"*",
+        "xml2js":"*"
     },
     "engine": [ "node >=0.3.0" ],
     "keywords": ["epub","books"]
