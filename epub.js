@@ -216,7 +216,7 @@ EPub.prototype.getRootFiles = function () {
 /**
  *  EPub#handleRootFile() -> undefined
  *
- *  Parser the rootfile XML and calls rootfile parser
+ *  Parses the rootfile XML and calls rootfile parser
  **/
 EPub.prototype.handleRootFile = function () {
 
@@ -527,13 +527,105 @@ EPub.prototype.walkNavMap = function (branch, path, id_list, level) {
  *  <head> etc. elements. Return only chapters with mime type application/xhtml+xml
  **/
 EPub.prototype.getChapter = function (id, callback) {
-    var i, len, path = this.rootFile.split("/"), keys = Object.keys(this.manifest);
-    path.pop();
+    this.getChapterRaw(id, (function (err, str) {
+        if (err) {
+            callback(err);
+            return;
+        }
 
+        var i, len, path = this.rootFile.split("/"), keys = Object.keys(this.manifest);
+        path.pop();
+
+        // remove linebreaks (no multi line matches in JS regex!)
+        str = str.replace(/\r?\n/g, "\u0000");
+
+        // keep only <body> contents
+        str.replace(/<body[^>]*?>(.*)<\/body[^>]*?>/i, function (o, d) {
+            str = d.trim();
+        });
+
+        // remove <script> blocks if any
+        str = str.replace(/<script[^>]*?>(.*?)<\/script[^>]*?>/ig, function (o, s) {
+            return "";
+        });
+
+        // remove <style> blocks if any
+        str = str.replace(/<style[^>]*?>(.*?)<\/style[^>]*?>/ig, function (o, s) {
+            return "";
+        });
+
+        // remove onEvent handlers
+        str = str.replace(/(\s)(on\w+)(\s*=\s*["']?[^"'\s>]*?["'\s>])/g, function (o, a, b, c) {
+            return a + "skip-" + b + c;
+        });
+
+        // replace images
+        str = str.replace(/(\ssrc\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (function (o, a, b, c) {
+            var img = path.concat([b]).join("/").trim(),
+                element;
+
+            for (i = 0, len = keys.length; i < len; i++) {
+                if (this.manifest[keys[i]].href == img) {
+                    element = this.manifest[keys[i]];
+                    break;
+                }
+            }
+
+            // include only images from manifest
+            if (element) {
+                return a + this.imageroot + element.id + "/" + img + c;
+            } else {
+                return "";
+            }
+
+        }).bind(this));
+
+        // replace links
+        str = str.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (function (o, a, b, c) {
+            var linkparts = b && b.split("#"),
+                link = path.concat([(linkparts.shift() || "")]).join("/").trim(),
+                element;
+
+            for (i = 0, len = keys.length; i < len; i++) {
+                if (this.manifest[keys[i]].href.split("#")[0] == link) {
+                    element = this.manifest[keys[i]];
+                    break;
+                }
+            }
+
+            if (linkparts.length) {
+                link  +=  "#" + linkparts.join("#");
+            }
+
+            // include only images from manifest
+            if (element) {
+                return a + this.linkroot + element.id + "/" + link + c;
+            } else {
+                return a + b + c;
+            }
+
+        }).bind(this));
+
+        // bring back linebreaks
+        str = str.replace(/\u0000/g, "\n").trim();
+
+        callback(null, str);
+    }).bind(this));
+};
+
+
+/**
+ *  EPub#getChapterRaw(id, callback) -> undefined
+ *  - id (String): Manifest id value for a chapter
+ *  - callback (Function): callback function
+ *
+ *  Returns the raw chapter text for an id.
+ **/
+EPub.prototype.getChapterRaw = function (id, callback) {
     if (this.manifest[id]) {
 
         if ((this.manifest[id]['media-type'] || "").toLowerCase().trim()  !=  "application/xhtml+xml") {
-            return callback(new Error("Inavlid mime type for chapter"));
+            return callback(new Error("Invalid mime type for chapter"));
         }
 
         this.zip.readFile(this.manifest[id].href, (function (err, data) {
@@ -543,79 +635,6 @@ EPub.prototype.getChapter = function (id, callback) {
             }
 
             var str = data.toString("utf-8");
-
-            // remove linebreaks (no multi line matches in JS regex!)
-            str = str.replace(/\r?\n/g, "\u0000");
-
-            // keep only <body> contents
-            str.replace(/<body[^>]*?>(.*)<\/body[^>]*?>/i, function (o, d) {
-                str = d.trim();
-            });
-
-            // remove <script> blocks if any
-            str = str.replace(/<script[^>]*?>(.*?)<\/script[^>]*?>/ig, function (o, s) {
-                return "";
-            });
-
-            // remove <style> blocks if any
-            str = str.replace(/<style[^>]*?>(.*?)<\/style[^>]*?>/ig, function (o, s) {
-                return "";
-            });
-
-            // remove onEvent handlers
-            str = str.replace(/(\s)(on\w+)(\s*=\s*["']?[^"'\s>]*?["'\s>])/g, function (o, a, b, c) {
-                return a + "skip-" + b + c;
-            });
-
-            // replace images
-            str = str.replace(/(\ssrc\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (function (o, a, b, c) {
-                var img = path.concat([b]).join("/").trim(),
-                    element;
-
-                for (i = 0, len = keys.length; i < len; i++) {
-                    if (this.manifest[keys[i]].href == img) {
-                        element = this.manifest[keys[i]];
-                        break;
-                    }
-                }
-
-                // include only images from manifest
-                if (element) {
-                    return a + this.imageroot + element.id + "/" + img + c;
-                } else {
-                    return "";
-                }
-
-            }).bind(this));
-
-            // replace links
-            str = str.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (function (o, a, b, c) {
-                var linkparts = b && b.split("#"),
-                    link = path.concat([(linkparts.shift() || "")]).join("/").trim(),
-                    element;
-
-                for (i = 0, len = keys.length; i < len; i++) {
-                    if (this.manifest[keys[i]].href.split("#")[0] == link) {
-                        element = this.manifest[keys[i]];
-                        break;
-                    }
-                }
-
-                if (linkparts.length) {
-                    link  +=  "#" + linkparts.join("#");
-                }
-
-                // include only images from manifest
-                if (element) {
-                    return a + this.linkroot + element.id + "/" + link + c;
-                } else {
-                    return a + b + c;
-                }
-
-            }).bind(this));
-
-            // bring back linebreaks
-            str = str.replace(/\u0000/g, "\n").trim();
 
             callback(null, str);
 
@@ -631,7 +650,7 @@ EPub.prototype.getChapter = function (id, callback) {
  *  - id (String): Manifest id value for an image
  *  - callback (Function): callback function
  *
- *  Finds an image an id. Returns the image as Buffer. Callback gets
+ *  Finds an image for an id. Returns the image as Buffer. Callback gets
  *  an error object, image buffer and image content-type.
  *  Return only images with mime type image
  **/
@@ -639,8 +658,26 @@ EPub.prototype.getImage = function (id, callback) {
     if (this.manifest[id]) {
 
         if ((this.manifest[id]['media-type'] || "").toLowerCase().trim().substr(0, 6)  !=  "image/") {
-            return callback(new Error("Inavlid mime type for image"));
+            return callback(new Error("Invalid mime type for image"));
         }
+
+        this.getFile(id, callback);
+    } else {
+        callback(new Error("File not found"));
+    }
+};
+
+
+/**
+ *  EPub#getFile(id, callback) -> undefined
+ *  - id (String): Manifest id value for a file
+ *  - callback (Function): callback function
+ *
+ *  Finds a file for an id. Returns the file as Buffer. Callback gets
+ *  an error object, file contents buffer and file content-type.
+ **/
+EPub.prototype.getFile = function (id, callback) {
+    if (this.manifest[id]) {
 
         this.zip.readFile(this.manifest[id].href, (function (err, data) {
             if (err) {
@@ -654,6 +691,7 @@ EPub.prototype.getImage = function (id, callback) {
         callback(new Error("File not found"));
     }
 };
+
 
 // Expose to the world
 module.exports = EPub;
