@@ -46,6 +46,7 @@ Available fields:
   * **language** Language code (*en* or *en-us* etc.)
   * **subject** Topic of the book (*Fantasy*)
   * **date** creation of the file (*2006-08-12*)
+  * **description**
 
 ## flow
 
@@ -71,6 +72,10 @@ Load chapter text from the ebook.
     ...
     epub.getChapter("chapter1", function(error, text){});
 
+## getChapterRaw(chapter_id, callback)
+
+Load raw chapter text from the ebook.
+
 ## getImage(image_id, callback)
 
 Load image (as a Buffer value) from the ebook.
@@ -78,4 +83,12 @@ Load image (as a Buffer value) from the ebook.
     var epub = new EPub(...);
     ...
     epub.getImage("image1", function(error, img, mimeType){});
+
+## getFile(file_id, callback)
+
+Load any file (as a Buffer value) from the ebook.
+
+    var epub = new EPub(...);
+    ...
+    epub.getFile("css1", function(error, data, mimeType){});
 
