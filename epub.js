@@ -248,6 +248,8 @@ EPub.prototype.handleRootFile = function () {
  **/
 EPub.prototype.parseRootFile = function (rootfile) {
 
+    this.version = rootfile['@'].version || '2.0';
+
     var i, len, keys, keyparts, key;
     keys = Object.keys(rootfile);
     for (i = 0, len = keys.length; i < len; i++) {
