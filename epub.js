@@ -361,6 +361,18 @@ EPub.prototype.parseMetadata = function (metadata) {
             break;
         }
     }
+    
+    var metas = metadata['meta'] || {};
+    Object.keys(metas).forEach(function(key) {
+        var meta = metas[key];
+        if (meta['@'] && meta['@'].name) {
+            var name = meta['@'].name;
+            this.metadata[name] = meta['@'].content;
+        }
+        if (meta['#'] && meta['@'].property) {
+            this.metadata[meta['@'].property] = meta['#'];
+        }
+    }, this);
 };
 
 /**
