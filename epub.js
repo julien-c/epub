@@ -248,6 +248,8 @@ EPub.prototype.handleRootFile = function () {
  **/
 EPub.prototype.parseRootFile = function (rootfile) {
 
+    this.version = rootfile['@'].version || '2.0';
+
     var i, len, keys, keyparts, key;
     keys = Object.keys(rootfile);
     for (i = 0, len = keys.length; i < len; i++) {
@@ -359,6 +361,18 @@ EPub.prototype.parseMetadata = function (metadata) {
             break;
         }
     }
+    
+    var metas = metadata['meta'] || {};
+    Object.keys(metas).forEach(function(key) {
+        var meta = metas[key];
+        if (meta['@'] && meta['@'].name) {
+            var name = meta['@'].name;
+            this.metadata[name] = meta['@'].content;
+        }
+        if (meta['#'] && meta['@'].property) {
+            this.metadata[meta['@'].property] = meta['#'];
+        }
+    }, this);
 };
 
 /**
