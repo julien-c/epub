@@ -1,24 +1,35 @@
 {
     "name": "epub",
     "description": "Parse ePub electronic book files with Node.JS",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "author" : "Andris Reinman",
+    "contributors": [
+        {
+            "name":"andris",
+            "email":"andris@node.ee"
+        },
+        {
+            "name": "Julien Chaumond",
+            "email": "chaumond@gmail.com",
+            "url" : "https://github.com/julien-c"
+        }
+    ],
     "maintainers":[
         {
             "name":"andris",
             "email":"andris@node.ee"
         }
     ],
-    "homepage": "http://github.com/andris9/epub",
+    "homepage": "http://github.com/julien-c/epub",
     "repository" : {
         "type" : "git",
-        "url" : "http://github.com/andris9/epub.git"
+        "url" : "http://github.com/julien-c/epub.git"
     },
     "main" : "./epub",
     "licenses" : [
         {
             "type": "MIT",
-            "url": "http://github.com/andris9/epub/blob/master/LICENSE"
+            "url": "http://github.com/julien-c/epub/blob/master/LICENSE"
         }
     ],
     "dependencies": {
@@ -26,5 +37,5 @@
         "xml2js":"~0.1.0"
     },
     "engine": [ "node >=0.3.0" ],
-    "keywords": ["epub","books"]
+    "keywords": ["epub", "books"]
 }
