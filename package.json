@@ -14,12 +14,6 @@
             "url" : "https://github.com/julien-c"
         }
     ],
-    "maintainers":[
-        {
-            "name":"andris",
-            "email":"andris@node.ee"
-        }
-    ],
     "homepage": "http://github.com/julien-c/epub",
     "repository" : {
         "type" : "git",
