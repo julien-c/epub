@@ -1,5 +1,5 @@
 var XML2JS = require("xml2js").Parser;
-var utillib = require("util");
+var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 
 try {
@@ -66,7 +66,7 @@ function EPub(fname, imageroot, linkroot) {
         this.linkroot += "/";
     }
 }
-utillib.inherits(EPub, EventEmitter);
+util.inherits(EPub, EventEmitter);
 
 /**
  *  EPub#parse() -> undefined
@@ -725,6 +725,26 @@ EPub.prototype.getFile = function (id, callback) {
         }).bind(this));
     } else {
         callback(new Error("File not found"));
+    }
+};
+
+
+EPub.prototype.readFile = function(filename, options, callback_) {
+    var callback = arguments[arguments.length - 1];
+    
+    if (util.isFunction(options) || !options) {
+        this.zip.readFile(filename, callback);
+    } else if (util.isString(options)) {
+        // options is an encoding
+        this.zip.readFile(filename, function(err, data) {
+            if (err) {
+                callback(new Error('Reading archive failed'));
+                return;
+            }
+            callback(null, data.toString(options));
+        });
+    } else {
+        throw new TypeError('Bad arguments');
     }
 };
 
