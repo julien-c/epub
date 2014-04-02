@@ -8,6 +8,11 @@
 
     npm install epub
 
+Or, if you want a pure-JS version (useful if used in a Node-Webkit app for example):
+
+    npm install epub --no-optional
+
+
 ## Usage
 
     var EPub = require("epub");
