@@ -1,4 +1,3 @@
-var ZipFile = require("zipfile").ZipFile;
 var XML2JS = require("xml2js").Parser;
 var utillib = require("util");
 var EventEmitter = require('events').EventEmitter;
