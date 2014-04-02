@@ -1,35 +1,40 @@
 {
-    "name": "epub",
-    "description": "Parse ePub electronic book files with Node.JS",
-    "version": "0.1.4",
-    "author" : "Andris Reinman",
-    "contributors": [
-        {
-            "name":"andris",
-            "email":"andris@node.ee"
-        },
-        {
-            "name": "Julien Chaumond",
-            "email": "chaumond@gmail.com",
-            "url" : "https://github.com/julien-c"
-        }
-    ],
-    "homepage": "http://github.com/julien-c/epub",
-    "repository" : {
-        "type" : "git",
-        "url" : "http://github.com/julien-c/epub.git"
+  "name": "epub",
+  "description": "Parse ePub electronic book files with Node.JS",
+  "version": "0.1.4",
+  "author": "Andris Reinman",
+  "contributors": [
+    {
+      "name": "andris",
+      "email": "andris@node.ee"
     },
-    "main" : "./epub",
-    "licenses" : [
-        {
-            "type": "MIT",
-            "url": "http://github.com/julien-c/epub/blob/master/LICENSE"
-        }
-    ],
-    "dependencies": {
-        "zipfile":"*",
-        "xml2js":"~0.1.0"
-    },
-    "engine": [ "node >=0.3.0" ],
-    "keywords": ["epub", "books"]
+    {
+      "name": "Julien Chaumond",
+      "email": "chaumond@gmail.com",
+      "url": "https://github.com/julien-c"
+    }
+  ],
+  "homepage": "http://github.com/julien-c/epub",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/julien-c/epub.git"
+  },
+  "main": "./epub",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://github.com/julien-c/epub/blob/master/LICENSE"
+    }
+  ],
+  "dependencies": {
+    "zipfile": "^0.5.0",
+    "xml2js": "~0.1.0"
+  },
+  "engine": [
+    "node >=0.3.0"
+  ],
+  "keywords": [
+    "epub",
+    "books"
+  ]
 }
