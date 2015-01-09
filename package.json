@@ -1,7 +1,7 @@
 {
   "name": "epub",
   "description": "Parse ePub electronic book files with Node.JS",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "author": "Andris Reinman",
   "contributors": [
     {
