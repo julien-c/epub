@@ -1,4 +1,5 @@
-var XML2JS = require("xml2js").Parser;
+var xml2js = require('xml2js');
+var xml2jsOptions = xml2js.defaults['0.1'];
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 
@@ -171,12 +172,13 @@ EPub.prototype.getRootFiles = function () {
             return;
         }
         var xml = data.toString("utf-8").toLowerCase().trim(),
-            xmlparser = new XML2JS();
+            xmlparser = new xml2js.Parser(xml2jsOptions);
 
         xmlparser.on("end", (function (result) {
 
             if (!result.rootfiles || !result.rootfiles.rootfile) {
                 this.emit("error", new Error("No rootfiles found"));
+                console.dir(result);
                 return;
             }
 
@@ -248,7 +250,7 @@ EPub.prototype.handleRootFile = function () {
             return;
         }
         var xml = data.toString("utf-8"),
-            xmlparser = new XML2JS();
+            xmlparser = new xml2js.Parser(xml2jsOptions);
 
         xmlparser.on("end", this.parseRootFile.bind(this));
 
@@ -471,7 +473,7 @@ EPub.prototype.parseTOC = function () {
             return;
         }
         var xml = data.toString("utf-8"),
-            xmlparser = new XML2JS();
+            xmlparser = new xml2js.Parser(xml2jsOptions);
 
         xmlparser.on("end", (function (result) {
             if (result.navMap && result.navMap.navPoint) {
