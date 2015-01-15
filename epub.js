@@ -511,20 +511,29 @@ EPub.prototype.walkNavMap = function (branch, path, id_list, level) {
         return [];
     }
 
-    var i, len, output = [], element, title, order, href;
+    var output = [];
 
     if (!Array.isArray(branch)) {
         branch = [branch];
     }
 
-    for (i = 0, len = branch.length; i < len; i++) {
+    for (var i = 0; i < branch.length; i++) {
         if (branch[i].navLabel) {
 
-            title = (branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel || "").trim();
-            order = Number(branch[i]["@"] && branch[i]["@"].playOrder || 0);
-            href = (branch[i].content && branch[i].content["@"] && branch[i].content["@"].src || "").trim();
+            var title = '';
+            if (branch[i].navLabel && typeof branch[i].navLabel.text == 'string') {
+                title = branch[i].navLabel.text.trim();
+            }
+            var order = Number(branch[i]["@"] && branch[i]["@"].playOrder || 0);
+            if (isNaN(order)) {
+                order = 0;
+            }
+            var href = '';
+            if (branch[i].content && branch[i].content["@"] && typeof branch[i].content["@"].src == 'string') {
+                href = branch[i].content["@"].src.trim();
+            }
 
-            element = {
+            var element = {
                 level: level,
                 order: order,
                 title: title
