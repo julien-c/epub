@@ -519,13 +519,17 @@ EPub.prototype.walkNavMap = function (branch, path, id_list, level) {
         if (branch[i].navLabel) {
 
             var title = '';
-            if (branch[i].navLabel && typeof branch[i].navLabel.text == 'string')
+            if (branch[i].navLabel && typeof branch[i].navLabel.text == 'string') {
                 title = branch[i].navLabel.text.trim();
+            }
             var order = Number(branch[i]["@"] && branch[i]["@"].playOrder || 0);
-            if (isNaN(order)) order = 0;
+            if (isNaN(order)) {
+                order = 0;
+            }
             var href = '';
-            if (branch[i].content && branch[i].content["@"] && typeof branch[i].content["@"].src == 'string')
+            if (branch[i].content && branch[i].content["@"] && typeof branch[i].content["@"].src == 'string') {
                 href = branch[i].content["@"].src.trim();
+            }
 
             var element = {
                 level: level,
