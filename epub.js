@@ -391,6 +391,7 @@ EPub.prototype.parseMetadata = function (metadata) {
         var meta = metas[key];
         if (meta['@'] && meta['@'].name) {
             var name = meta['@'].name;
+            name = name.replace(/:/g,'');
             this.metadata[name] = meta['@'].content;
         }
         if (meta['#'] && meta['@'].property) {
