@@ -96,7 +96,7 @@ EPub.prototype.parse = function () {
  *  and runs mime type check
  **/
 EPub.prototype.open = function () {
-    try {
+    try {
         this.zip = new ZipFile(this.filename);
     } catch (E) {
         this.emit("error", new Error("Invalid/missing file"));
