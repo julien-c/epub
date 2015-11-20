@@ -86,16 +86,16 @@ EPub.prototype.parse = function () {
     this.flow = [];
     this.toc = [];
 
-    this.open();
+    this._open();
 };
 
 /**
- *  EPub#open() -> undefined
+ *  EPub#_open() -> undefined
  *
  *  Opens the epub file with Zip unpacker, retrieves file listing
  *  and runs mime type check
  **/
-EPub.prototype.open = function () {
+EPub.prototype._open = function () {
     try {
         this.zip = new ZipFile(this.filename);
     } catch (E) {
@@ -108,16 +108,16 @@ EPub.prototype.open = function () {
         return;
     }
 
-    this.checkMimeType();
+    this._checkMimeType();
 };
 
 /**
- *  EPub#checkMimeType() -> undefined
+ *  EPub#_checkMimeType() -> undefined
  *
  *  Checks if there's a file called "mimetype" and that it's contents
  *  are "application/epub+zip". On success runs root file check.
  **/
-EPub.prototype.checkMimeType = function () {
+EPub.prototype._checkMimeType = function () {
     var i, len;
 
     for (i = 0, len = this.zip.names.length; i < len; i++) {
@@ -142,18 +142,18 @@ EPub.prototype.checkMimeType = function () {
             return;
         }
 
-        this.getRootFiles();
+        this._getRootFiles();
     }).bind(this));
 };
 
 /**
- *  EPub#getRootFiles() -> undefined
+ *  EPub#_getRootFiles() -> undefined
  *
  *  Looks for a "meta-inf/container.xml" file and searches for a
  *  rootfile element with mime type "application/oebps-package+xml".
  *  On success calls the rootfile parser
  **/
-EPub.prototype.getRootFiles = function () {
+EPub.prototype._getRootFiles = function () {
     var i, len;
     for (i = 0, len = this.zip.names.length; i < len; i++) {
         if (this.zip.names[i].toLowerCase() == "meta-inf/container.xml") {
@@ -222,7 +222,7 @@ EPub.prototype.getRootFiles = function () {
                 return;
             }
 
-            this.handleRootFile();
+            this._handleRootFile();
 
         }).bind(this));
 
@@ -238,11 +238,11 @@ EPub.prototype.getRootFiles = function () {
 };
 
 /**
- *  EPub#handleRootFile() -> undefined
+ *  EPub#_handleRootFile() -> undefined
  *
  *  Parses the rootfile XML and calls rootfile parser
  **/
-EPub.prototype.handleRootFile = function () {
+EPub.prototype._handleRootFile = function () {
 
     this.zip.readFile(this.rootFile, (function (err, data) {
         if (err) {
@@ -252,7 +252,7 @@ EPub.prototype.handleRootFile = function () {
         var xml = data.toString("utf-8"),
             xmlparser = new xml2js.Parser(xml2jsOptions);
 
-        xmlparser.on("end", this.parseRootFile.bind(this));
+        xmlparser.on("end", this._parseRootFile.bind(this));
 
         xmlparser.on("error", (function (err) {
             this.emit("error", new Error("Parsing container XML failed"));
@@ -265,12 +265,12 @@ EPub.prototype.handleRootFile = function () {
 };
 
 /**
- *  EPub#parseRootFile() -> undefined
+ *  EPub#_parseRootFile() -> undefined
  *
  *  Parses elements "metadata," "manifest," "spine" and TOC.
  *  Emits "end" if no TOC
  **/
-EPub.prototype.parseRootFile = function (rootfile) {
+EPub.prototype._parseRootFile = function (rootfile) {
 
     this.version = rootfile['@'].version || '2.0';
 
@@ -281,13 +281,13 @@ EPub.prototype.parseRootFile = function (rootfile) {
         key = (keyparts.pop() || "").toLowerCase().trim();
         switch (key) {
         case "metadata":
-            this.parseMetadata(rootfile[keys[i]]);
+            this._parseMetadata(rootfile[keys[i]]);
             break;
         case "manifest":
-            this.parseManifest(rootfile[keys[i]]);
+            this._parseManifest(rootfile[keys[i]]);
             break;
         case "spine":
-            this.parseSpine(rootfile[keys[i]]);
+            this._parseSpine(rootfile[keys[i]]);
             break;
         case "guide":
             //this.parseGuide(rootfile[keys[i]]);
@@ -296,18 +296,18 @@ EPub.prototype.parseRootFile = function (rootfile) {
     }
 
     if (this.spine.toc) {
-        this.parseTOC();
+        this._parseTOC();
     } else {
         this.emit("end");
     }
 };
 
 /**
- *  EPub#parseMetadata() -> undefined
+ *  EPub#_parseMetadata() -> undefined
  *
  *  Parses "metadata" block (book metadata, title, author etc.)
  **/
-EPub.prototype.parseMetadata = function (metadata) {
+EPub.prototype._parseMetadata = function (metadata) {
     var i, j, len, keys, keyparts, key;
 
     keys = Object.keys(metadata);
@@ -400,11 +400,11 @@ EPub.prototype.parseMetadata = function (metadata) {
 };
 
 /**
- *  EPub#parseManifest() -> undefined
+ *  EPub#_parseManifest() -> undefined
  *
  *  Parses "manifest" block (all items included, html files, images, styles)
  **/
-EPub.prototype.parseManifest = function (manifest) {
+EPub.prototype._parseManifest = function (manifest) {
     var i, len, path = this.rootFile.split("/"), element, path_str;
     path.pop();
     path_str = path.join("/");
@@ -426,11 +426,11 @@ EPub.prototype.parseManifest = function (manifest) {
 };
 
 /**
- *  EPub#parseSpine() -> undefined
+ *  EPub#_parseSpine() -> undefined
  *
  *  Parses "spine" block (all html elements that are shown to the reader)
  **/
-EPub.prototype.parseSpine = function (spine) {
+EPub.prototype._parseSpine = function (spine) {
     var i, len, path = this.rootFile.split("/"), element;
     path.pop();
 
@@ -454,11 +454,11 @@ EPub.prototype.parseSpine = function (spine) {
 };
 
 /**
- *  EPub#parseTOC() -> undefined
+ *  EPub#_parseTOC() -> undefined
  *
  *  Parses ncx file for table of contents (title, html file)
  **/
-EPub.prototype.parseTOC = function () {
+EPub.prototype._parseTOC = function () {
     var i, len, path = this.spine.toc.href.split("/"), id_list = {}, keys;
     path.pop();
 
@@ -477,7 +477,7 @@ EPub.prototype.parseTOC = function () {
 
         xmlparser.on("end", (function (result) {
             if (result.navMap && result.navMap.navPoint) {
-                this.toc = this.walkNavMap(result.navMap.navPoint, path, id_list);
+                this.toc = this._walkNavMap(result.navMap.navPoint, path, id_list);
             }
 
             this.emit("end");
@@ -494,7 +494,7 @@ EPub.prototype.parseTOC = function () {
 };
 
 /**
- *  EPub#walkNavMap(branch, path, id_list,[, level]) -> Array
+ *  EPub#_walkNavMap(branch, path, id_list,[, level]) -> Array
  *  - branch (Array | Object): NCX NavPoint object
  *  - path (Array): Base path
  *  - id_list (Object): map of file paths and id values
@@ -503,7 +503,7 @@ EPub.prototype.parseTOC = function () {
  *  Walks the NavMap object through all levels and finds elements
  *  for TOC
  **/
-EPub.prototype.walkNavMap = function (branch, path, id_list, level) {
+EPub.prototype._walkNavMap = function (branch, path, id_list, level) {
     level = level || 0;
 
     // don't go too far
@@ -559,7 +559,7 @@ EPub.prototype.walkNavMap = function (branch, path, id_list, level) {
             }
         }
         if (branch[i].navPoint) {
-            output = output.concat(this.walkNavMap(branch[i].navPoint, path, id_list, level + 1));
+            output = output.concat(this._walkNavMap(branch[i].navPoint, path, id_list, level + 1));
         }
     }
     return output;
