@@ -308,83 +308,54 @@ EPub.prototype._parseRootFile = function (rootfile) {
  *  Parses "metadata" block (book metadata, title, author etc.)
  **/
 EPub.prototype._parseMetadata = function (metadata) {
-    var i, j, len, keys, keyparts, key;
+    var myMetadata = this.metadata;
 
-    keys = Object.keys(metadata);
-    for (i = 0, len = keys.length; i < len; i++) {
-        keyparts = keys[i].split(":");
-        key = (keyparts.pop() || "").toLowerCase().trim();
-        switch (key) {
+    Object.keys(metadata).forEach(function (key) {
+        var keyparts = key.split(":");
+        var name = (keyparts.pop() || "").toLowerCase().trim();
+        var val = metadata[key];
+
+        switch (name) {
         case "publisher":
-            if (Array.isArray(metadata[keys[i]])) {
-                this.metadata.publisher = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
-            } else {
-                this.metadata.publisher = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
-            }
-            break;
         case "language":
-            if (Array.isArray(metadata[keys[i]])) {
-                this.metadata.language = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").toLowerCase().trim();
-            } else {
-                this.metadata.language = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").toLowerCase().trim();
-            }
-            break;
         case "title":
-            if (Array.isArray(metadata[keys[i]])) {
-                this.metadata.title = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
-            } else {
-                this.metadata.title = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
-            }
-            break;
         case "subject":
-            if (Array.isArray(metadata[keys[i]])) {
-                this.metadata.subject = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
-            } else {
-                this.metadata.subject = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
-            }
-            break;
         case "description":
-            if (Array.isArray(metadata[keys[i]])) {
-                this.metadata.description = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
-            } else {
-                this.metadata.description = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
-            }
-            break;
-        case "creator":
-            if (Array.isArray(metadata[keys[i]])) {
-                this.metadata.creator = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
-                this.metadata.creatorFileAs = String(metadata[keys[i]][0] && metadata[keys[i]][0]['@'] && metadata[keys[i]][0]['@']["opf:file-as"] || this.metadata.creator).trim();
-            } else {
-                this.metadata.creator = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
-                this.metadata.creatorFileAs = String(metadata[keys[i]]['@'] && metadata[keys[i]]['@']["opf:file-as"] || this.metadata.creator).trim();
-            }
-            break;
         case "date":
-            if (Array.isArray(metadata[keys[i]])) {
-                this.metadata.date = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+        case "creator":
+            if (Array.isArray(val)) {
+                myMetadata[name] = String(val[0] && val[0]["#"] || val[0] || "").trim();
             } else {
-                this.metadata.date = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                myMetadata[name] = String(val["#"] || val || "").trim();
             }
-            break;
-        case "identifier":
-            if (metadata[keys[i]]["@"] && metadata[keys[i]]["@"]["opf:scheme"] == "ISBN") {
-                this.metadata.ISBN = String(metadata[keys[i]]["#"] || "").trim();
-            } else if (metadata[keys[i]]["@"] && metadata[keys[i]]["@"].id && metadata[keys[i]]["@"].id.match(/uuid/i)) {
-                this.metadata.UUID = String(metadata[keys[i]]["#"] || "").replace('urn:uuid:', '').toUpperCase().trim();
-            } else if (Array.isArray(metadata[keys[i]])) {
-                for (j = 0; j < metadata[keys[i]].length; j++) {
-                    if (metadata[keys[i]][j]["@"]) {
-                        if (metadata[keys[i]][j]["@"]["opf:scheme"] == "ISBN") {
-                            this.metadata.ISBN = String(metadata[keys[i]][j]["#"] || "").trim();
-                        } else if (metadata[keys[i]][j]["@"].id && metadata[keys[i]][j]["@"].id.match(/uuid/i)) {
-                            this.metadata.UUID = String(metadata[keys[i]][j]["#"] || "").replace('urn:uuid:', '').toUpperCase().trim();
-                        }
-                    }
+
+            if (name == 'creator') {
+                if (Array.isArray(val)) {
+                    myMetadata.creatorFileAs = String(val[0] && val[0]['@'] && val[0]['@']["opf:file-as"] || myMetadata.creator).trim();
+                } else {
+                    myMetadata.creatorFileAs = String(val['@'] && val['@']["opf:file-as"] || myMetadata.creator).trim();
                 }
             }
             break;
+        case "identifier":
+            if (val["@"] && val["@"]["opf:scheme"] == "ISBN") {
+                myMetadata.ISBN = String(val["#"] || "").trim();
+            } else if (val["@"] && val["@"].id && val["@"].id.match(/uuid/i)) {
+                myMetadata.UUID = String(val["#"] || "").replace('urn:uuid:', '').toUpperCase().trim();
+            } else if (Array.isArray(val)) {
+                val.forEach(function(item) {
+                    if (item["@"]) {
+                        if (item["@"]["opf:scheme"] == "ISBN") {
+                            myMetadata.ISBN = String(item["#"] || "").trim();
+                        } else if (item["@"].id && item["@"].id.match(/uuid/i)) {
+                            myMetadata.UUID = String(item["#"] || "").replace('urn:uuid:', '').toUpperCase().trim();
+                        }
+                    }
+                });
+            }
+            break;
         }
-    }
+    });
     
     var metas = metadata['meta'] || {};
     Object.keys(metas).forEach(function(key) {
