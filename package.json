@@ -20,6 +20,7 @@
     "url": "http://github.com/julien-c/epub.git"
   },
   "main": "./epub",
+  "typings": "./epub.d.ts",
   "licenses": [
     {
       "type": "MIT",
