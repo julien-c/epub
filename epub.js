@@ -9,7 +9,7 @@ try {
 } catch (err) {
     // Mock zipfile using pure-JS adm-zip:
     var AdmZip = require('adm-zip');
-    
+
     var ZipFile = function(filename) {
         this.admZip = new AdmZip(filename);
         this.names = this.admZip.getEntries().map(function(zipEntry) {
@@ -385,7 +385,7 @@ EPub.prototype.parseMetadata = function (metadata) {
             break;
         }
     }
-    
+
     var metas = metadata['meta'] || {};
     Object.keys(metas).forEach(function(key) {
         var meta = metas[key];
@@ -395,6 +395,10 @@ EPub.prototype.parseMetadata = function (metadata) {
         }
         if (meta['#'] && meta['@'].property) {
             this.metadata[meta['@'].property] = meta['#'];
+        }
+
+        if(meta.name && meta.name =="cover"){
+            this.metadata[meta.name] = meta.content;
         }
     }, this);
 };
@@ -522,7 +526,7 @@ EPub.prototype.walkNavMap = function (branch, path, id_list, level) {
 
             var title = '';
             if (branch[i].navLabel && typeof branch[i].navLabel.text == 'string') {
-                title = branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel===branch[i].navLabel ? 
+                title = branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel===branch[i].navLabel ?
                     '' : (branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel || "").trim();
             }
             var order = Number(branch[i]["@"] && branch[i]["@"].playOrder || 0);
@@ -743,7 +747,7 @@ EPub.prototype.getFile = function (id, callback) {
 
 EPub.prototype.readFile = function(filename, options, callback_) {
     var callback = arguments[arguments.length - 1];
-    
+
     if (util.isFunction(options) || !options) {
         this.zip.readFile(filename, callback);
     } else if (util.isString(options)) {
