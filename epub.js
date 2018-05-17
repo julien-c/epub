@@ -527,7 +527,7 @@ EPub.prototype.walkNavMap = function (branch, path, id_list, level) {
             var title = '';
             if (branch[i].navLabel && typeof branch[i].navLabel.text == 'string') {
                 title = branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel===branch[i].navLabel ?
-                    '' : (branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel || "").trim();
+                     (branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel || "").trim() : '';
             }
             var order = Number(branch[i]["@"] && branch[i]["@"].playOrder || 0);
             if (isNaN(order)) {
