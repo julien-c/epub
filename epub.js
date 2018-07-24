@@ -3,10 +3,10 @@ var xml2jsOptions = xml2js.defaults['0.1'];
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 
-//try {
-    //// zipfile is an optional dependency:
-    //var ZipFile = require("zipfile").ZipFile;
-//} catch (err) {
+try {
+    // zipfile is an optional dependency:
+    var ZipFile = require("zipfile").ZipFile;
+} catch (err) {
     var zipread = require("zipread");
 
     var ZipFile = function(filename) {
@@ -29,7 +29,7 @@ var EventEmitter = require('events').EventEmitter;
         var buffer = this.zip.readFileSync(name);
         return cb(null, buffer);
     };
-//}
+}
 
 //TODO: Cache parsed data
 
