@@ -81,6 +81,7 @@ class EPub extends EventEmitter {
     
         this.metadata = {};
         this.manifest = {};
+        this.guide = [];
         this.spine    = {toc: false, contents: []};
         this.flow = [];
         this.toc = [];
@@ -290,7 +291,7 @@ class EPub extends EventEmitter {
                 this.parseSpine(rootfile[keys[i]]);
                 break;
             case "guide":
-                //this.parseGuide(rootfile[keys[i]]);
+                this.parseGuide(rootfile[keys[i]]);
                 break;
             }
         }
@@ -424,6 +425,37 @@ class EPub extends EventEmitter {
     
                     this.manifest[manifest.item[i]['@'].id] = element;
     
+                }
+            }
+        }
+    };
+    
+     /**
+     *  EPub#parseGuide() -> undefined
+     *
+     *  Parses "guide" block (locations of the fundamental structural components of the publication)
+     **/
+    parseGuide(guide) {
+        var i, len, path = this.rootFile.split("/"), element, path_str;
+        path.pop();
+        path_str = path.join("/");
+
+        if (guide.reference) {
+            if(!Array.isArray(guide.reference)){
+                guide.reference = [guide.reference];
+            }
+
+            for (i = 0, len = guide.reference.length; i < len; i++) {
+                if (guide.reference[i]['@']) {
+
+                    element = guide.reference[i]['@'];
+
+                    if (element.href && element.href.substr(0, path_str.length)  !=  path_str) {
+                        element.href = path.concat([element.href]).join("/");
+                    }
+
+                    this.guide.push(element);
+
                 }
             }
         }
