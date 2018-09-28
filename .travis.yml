@@ -1,3 +1,8 @@
 language: node_js
 node_js:
     - node # = latest
+before_install:
+    - npm i -g typescript
+    - tsc --version
+install:
+    - tsc
