@@ -1,4 +1,4 @@
-# epub
+# epub [![Build Status](https://travis-ci.org/julien-c/epub.svg?branch=master)](https://travis-ci.org/julien-c/epub)
 
 **epub** is a node.js module to parse EPUB electronic book files.
 
