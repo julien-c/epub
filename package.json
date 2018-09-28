@@ -40,5 +40,13 @@
   },
   "optionalDependencies": {
     "zipfile": "^0.5.11"
+  },
+  "devDependencies": {
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.11.2",
+    "mocha": "^5.2.0"
+  },
+  "scripts": {
+    "test": "node_modules/.bin/mocha dist/test/ --exit"
   }
 }
