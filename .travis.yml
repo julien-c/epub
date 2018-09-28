@@ -5,4 +5,5 @@ before_install:
     - npm i -g typescript
     - tsc --version
 install:
+    - npm ci
     - tsc
