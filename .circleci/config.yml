@@ -8,10 +8,9 @@ jobs:
         working_directory: ~/repo
         docker:
             - image: circleci/node:latest
-            - image: circleci/mongo:latest
         steps:
             - checkout
-            - run: npm i -g typescript
+            - run: sudo npm i -g typescript
             - run: tsc --version
             - run: npm ci
             - run: tsc
