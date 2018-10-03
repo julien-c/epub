@@ -1,0 +1,18 @@
+# Javascript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
+version: 2
+jobs:
+    build:
+        working_directory: ~/repo
+        docker:
+            - image: circleci/node:latest
+            - image: circleci/mongo:latest
+        steps:
+            - checkout
+            - run: npm i -g typescript
+            - run: tsc --version
+            - run: npm ci
+            - run: tsc
+            - run: npm test
