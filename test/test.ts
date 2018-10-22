@@ -20,4 +20,11 @@ mocha.describe('EPub', () => {
 			`/images/`
 		);
 	});
+
+	mocha.it('supports empty chapters', () => {
+		var branch = [{navLabel: { text: '' }}];
+		const epub = new EPub();
+		var res = epub.walkNavMap(branch, [], []);
+		assert.ok(res);
+	});
 });
