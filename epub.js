@@ -666,8 +666,8 @@ class EPub extends EventEmitter {
     
             // replace links
             str = str.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (function (o, a, b, c) {
-                var linkparts = b && b.split("#"),
-                    link = path.concat([(linkparts.shift() || "")]).join("/").trim(),
+                var linkparts = b && b.split("#");
+                var link = linkparts.length ? path.concat([(linkparts.shift() || "")]).join("/").trim() : '',
                     element;
     
                 for (i = 0, len = keys.length; i < len; i++) {
