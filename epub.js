@@ -718,7 +718,11 @@ class EPub extends EventEmitter {
                     return;
                 }
     
-                var str = data.toString("utf-8");
+                var str = "";
+                if (data) {
+                  str = data.toString("utf-8");
+                };
+
     
                 callback(null, str);
     
