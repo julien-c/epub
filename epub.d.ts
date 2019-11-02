@@ -3,7 +3,7 @@
 // Definitions by: Julien Chaumond <https://github.com/julien-c>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 
-/// <reference path="../node/node.d.ts" />
+/// <reference types="node" />
 
 /**
  *  new EPub(fname[, imageroot][, linkroot])
@@ -30,37 +30,63 @@
  *
  *      /images/logo_img/OPT/logo.jpg
  **/
-declare module "epub" {
-	
-	import {EventEmitter} from "events";
-	
-	interface TocElement {
-		level: number;
-		order: number;
-		title: string;
-		id: string;
-		href?: string;
-	}
-	
-	class EPub extends EventEmitter {
-		constructor(epubfile: string, imagewebroot?: string, chapterwebroot?: string);
-		
-		metadata: Object;
-		manifest: Object;
-		spine: Object;
-		flow: Array<Object>;
-		toc: Array<TocElement>;
-		
-		parse(): void;
-		
-		getChapter(chapterId: string, callback: (error: Error, text: string) => void): void;
-		
-		getChapterRaw(chapterId: string, callback: (error: Error, text: string) => void): void;
-		
-		getImage(id: string, callback: (error: Error, data: Buffer, mimeType: string) => void): void;
-		
-		getFile(id: string, callback: (error: Error, data: Buffer, mimeType: string) => void): void;
-	}
-	
-	export = EPub;
+import { EventEmitter } from 'events'
+
+declare class EPub extends EventEmitter {
+  constructor(epubfile: string, imagewebroot?: string, chapterwebroot?: string)
+
+  metadata: epub.Metadata
+  manifest: Object
+  spine: {
+    toc: { href: string; id: string }
+    contents: Array<epub.TocElement>
+  }
+  flow: Array<epub.TocElement>
+  toc: Array<epub.TocElement>
+
+  parse(): void
+
+  getChapter(
+    chapterId: string,
+    callback: (error: Error, text: string) => void
+  ): void
+
+  getChapterRaw(
+    chapterId: string,
+    callback: (error: Error, text: string) => void
+  ): void
+
+  getImage(
+    id: string,
+    callback: (error: Error, data: Buffer, mimeType: string) => void
+  ): void
+
+  getFile(
+    id: string,
+    callback: (error: Error, data: Buffer, mimeType: string) => void
+  ): void
+
+  hasDRM(): boolean
+}
+
+export = EPub
+
+declare namespace epub {
+  export interface TocElement {
+    level: number
+    order: number
+    title: string
+    id: string
+    href: string
+  }
+
+  export interface Metadata {
+    creator: string
+    creatorFileAs: string
+    title: string
+    language: string
+    subject: string
+    date: string
+    description: string
+  }
 }
