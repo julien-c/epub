@@ -71,7 +71,7 @@ declare class EPub extends EventEmitter {
 
 export = EPub
 
-declare namespace epub {
+declare namespace EPub {
   export interface TocElement {
     level: number
     order: number
