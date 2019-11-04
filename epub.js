@@ -800,6 +800,16 @@ class EPub extends EventEmitter {
         }
     };
 
+    /**
+     *  EPub#hasDRM() -> boolean
+     *
+     *  Parses the tree to see if there's an ecnryption file, signifying the presence of DRM
+     *  see: https://stackoverflow.com/questions/14442968/how-to-check-if-an-epub-file-is-drm-protected
+     **/
+    hasDRM () {
+        const drmFile = 'META-INF/encryption.xml';
+        return this.zip.names.includes(drmFile);
+    };
 }
 
 // Expose to the world
