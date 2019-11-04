@@ -35,14 +35,14 @@ import { EventEmitter } from 'events'
 declare class EPub extends EventEmitter {
   constructor(epubfile: string, imagewebroot?: string, chapterwebroot?: string)
 
-  metadata: epub.Metadata
+  metadata: EPub.Metadata
   manifest: Object
   spine: {
     toc: { href: string; id: string }
-    contents: Array<epub.TocElement>
+    contents: Array<EPub.TocElement>
   }
-  flow: Array<epub.TocElement>
-  toc: Array<epub.TocElement>
+  flow: Array<EPub.TocElement>
+  toc: Array<EPub.TocElement>
 
   parse(): void
 
