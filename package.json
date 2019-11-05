@@ -43,10 +43,12 @@
   },
   "devDependencies": {
     "@types/mocha": "^5.2.5",
-    "@types/node": "^10.11.2",
-    "mocha": "^5.2.0"
+    "@types/node": "^10.11.7",
+    "mocha": "^5.2.0",
+    "typescript": "3.6.4"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha dist/test/ --exit"
+    "pretest": "tsc",
+    "test": "mocha dist/test/ --exit"
   }
 }
