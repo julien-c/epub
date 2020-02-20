@@ -44,7 +44,7 @@ declare class EPub extends EventEmitter {
   flow: Array<EPub.TocElement>
   toc: Array<EPub.TocElement>
 
-  parse(): void
+  parse(options?: EPub.parseOptions): void
 
   getChapter(
     chapterId: string,
@@ -88,5 +88,9 @@ declare namespace EPub {
     subject: string
     date: string
     description: string
+  }
+
+  export interface parseOptions {
+    xml2jsOptions: object
   }
 }

@@ -70,11 +70,13 @@ class EPub extends EventEmitter {
     }
     
     /**
-     *  EPub#parse() -> undefined
-     *
+     *  EPub#parse(options) -> undefined
+     *  - options (object): An optional options object to override xml2jsOptions
      *  Starts the parser, needs to be called by the script
      **/
-    parse() {
+    parse(options = {}) {
+        Object.assign(xml2jsOptions, options.xml2jsOptions);
+
         this.containerFile = false;
         this.mimeFile = false;
         this.rootFile = false;
