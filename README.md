@@ -15,8 +15,8 @@ Or, if you want a pure-JS version (useful if used in a Node-Webkit app for examp
 
 ## Usage
 
-    var EPub = require("epub");
-    var epub = new EPub(epubfile, imagewebroot, chapterwebroot);
+    const EPub = require("epub");
+    let epub = new EPub(epubfile, imagewebroot, chapterwebroot);
 
 Where
 
@@ -73,7 +73,7 @@ Chapter `id` is needed to load the chapters `getChapter`
 
 Load chapter text from the ebook.
 
-    var epub = new EPub(...);
+    const epub = new EPub(...);
     ...
     epub.getChapter("chapter1", function(error, text){});
 
@@ -85,7 +85,7 @@ Load raw chapter text from the ebook.
 
 Load image (as a Buffer value) from the ebook.
 
-    var epub = new EPub(...);
+    const epub = new EPub(...);
     ...
     epub.getImage("image1", function(error, img, mimeType){});
 
@@ -93,7 +93,7 @@ Load image (as a Buffer value) from the ebook.
 
 Load any file (as a Buffer value) from the ebook.
 
-    var epub = new EPub(...);
+    const epub = new EPub(...);
     ...
     epub.getFile("css1", function(error, data, mimeType){});
 
