@@ -50,7 +50,7 @@ mocha.describe('EPub', () => {
 			epub.parse()
 			await pEvent(epub, 'end')
 		} catch (err) {
-			assert.ok(err.message.includes('Parsing container XML failed in TOC Error: Invalid character in entity name'))
+			assert.ok(err.message.includes('Parsing container XML failed in TOC: Invalid character in entity name'))
 			return
 		}
 		assert.fail('should not get here')
