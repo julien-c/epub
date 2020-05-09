@@ -19,6 +19,10 @@
     "type": "git",
     "url": "http://github.com/julien-c/epub.git"
   },
+  "files": [
+    "epub.js",
+    "epub.d.ts"
+  ],
   "main": "./epub",
   "typings": "./epub.d.ts",
   "licenses": [

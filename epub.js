@@ -230,7 +230,7 @@ class EPub extends EventEmitter {
             }).bind(this));
     
             xmlparser.on("error", (function (err) {
-                this.emit("error", new Error("Parsing container XML failed"));
+                this.emit("error", new Error("Parsing container XML failed in getRootFiles " + err));
                 return;
             }).bind(this));
     
@@ -258,7 +258,7 @@ class EPub extends EventEmitter {
             xmlparser.on("end", this.parseRootFile.bind(this));
     
             xmlparser.on("error", (function (err) {
-                this.emit("error", new Error("Parsing container XML failed"));
+                this.emit("error", new Error("Parsing container XML failed in handleRootFile: " + err));
                 return;
             }).bind(this));
     
@@ -522,7 +522,7 @@ class EPub extends EventEmitter {
             }).bind(this));
     
             xmlparser.on("error", (function (err) {
-                this.emit("error", new Error("Parsing container XML failed"));
+                this.emit("error", new Error("Parsing container XML failed in TOC " + err));
                 return;
             }).bind(this));
     
