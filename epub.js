@@ -10,7 +10,7 @@ try {
     // Mock zipfile using pure-JS adm-zip:
     const AdmZip = require('adm-zip');
 
-    ZipFile = filename => {
+    ZipFile = function (filename) {
         this.admZip = new AdmZip(filename);
         this.names = this.admZip.getEntries().map(zipEntry =>  zipEntry.entryName);
         this.count = this.names.length;
