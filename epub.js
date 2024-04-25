@@ -1,27 +1,25 @@
-var xml2js = require('xml2js');
-var xml2jsOptions = xml2js.defaults['0.1'];
-var EventEmitter = require('events').EventEmitter;
+const xml2js = require('xml2js');
+const xml2jsOptions = xml2js.defaults['0.1'];
+const EventEmitter = require('events').EventEmitter;
 
+let ZipFile;
 try {
     // zipfile is an optional dependency:
-    var ZipFile = require("zipfile").ZipFile;
-} catch (err) {
+    ZipFile = require("zipfile").ZipFile;
+} catch (err) {    
     // Mock zipfile using pure-JS adm-zip:
-    var AdmZip = require('adm-zip');
+    const AdmZip = require('adm-zip');
 
-    var ZipFile = function(filename) {
+    ZipFile = function (filename) {
         this.admZip = new AdmZip(filename);
-        this.names = this.admZip.getEntries().map(function(zipEntry) {
-            return zipEntry.entryName;
-        });
+        this.names = this.admZip.getEntries().map(zipEntry =>  zipEntry.entryName);
         this.count = this.names.length;
+        
     };
-    ZipFile.prototype.readFile = function(name, cb) {
-        this.admZip.readFileAsync(this.admZip.getEntry(name), function(buffer, error) {
-            // `error` is bogus right now, so let's just drop it.
-            // see https://github.com/cthackers/adm-zip/pull/88
-            return cb(null, buffer);
-        });
+    ZipFile.prototype.readFile = function (name, cb){
+        // `error` is bogus right now, so let's just drop it.
+        // see https://github.com/cthackers/adm-zip/pull/88
+        this.admZip.readFileAsync(this.admZip.getEntry(name), (buffer, error) => cb(null, buffer));
     };
 }
 
@@ -121,7 +119,7 @@ class EPub extends EventEmitter {
      *  are "application/epub+zip". On success runs root file check.
      **/
     checkMimeType() {
-        var i, len;
+        let i, len;
 
         for (i = 0, len = this.zip.names.length; i < len; i++) {
             if (this.zip.names[i].toLowerCase() == "mimetype") {
@@ -133,12 +131,12 @@ class EPub extends EventEmitter {
             this.emit("error", new Error("No mimetype file in archive"));
             return;
         }
-        this.zip.readFile(this.mimeFile, (function (err, data) {
+        this.zip.readFile(this.mimeFile, ( (err, data) => {
             if (err) {
                 this.emit("error", new Error("Reading archive failed"));
                 return;
             }
-            var txt = data.toString("utf-8").toLowerCase().trim();
+            let txt = data.toString("utf-8").toLowerCase().trim();
 
             if (txt  !=  "application/epub+zip") {
                 this.emit("error", new Error("Unsupported mime type"));
@@ -157,7 +155,8 @@ class EPub extends EventEmitter {
      *  On success calls the rootfile parser
      **/
     getRootFiles() {
-        var i, len;
+        let i, len;
+
         for (i = 0, len = this.zip.names.length; i < len; i++) {
             if (this.zip.names[i].toLowerCase() == "meta-inf/container.xml") {
                 this.containerFile = this.zip.names[i];
@@ -169,23 +168,22 @@ class EPub extends EventEmitter {
             return;
         }
 
-        this.zip.readFile(this.containerFile, (function (err, data) {
+        this.zip.readFile(this.containerFile, ((err, data) => {
             if (err) {
                 this.emit("error", new Error("Reading archive failed"));
                 return;
             }
-            var xml = data.toString("utf-8").toLowerCase().trim(),
+            let xml = data.toString("utf-8").toLowerCase().trim(),
                 xmlparser = new xml2js.Parser(xml2jsOptions);
 
-            xmlparser.on("end", (function (result) {
-
+            xmlparser.on("end", ( result => {
                 if (!result.rootfiles || !result.rootfiles.rootfile) {
                     this.emit("error", new Error("No rootfiles found"));
                     console.dir(result);
                     return;
                 }
 
-                var rootfile = result.rootfiles.rootfile,
+                let rootfile = result.rootfiles.rootfile,
                     filename = false, i, len;
 
                 if (Array.isArray(rootfile)) {
@@ -229,7 +227,7 @@ class EPub extends EventEmitter {
 
             }).bind(this));
 
-            xmlparser.on("error", (function (err) {
+            xmlparser.on("error", ( (err) => {
                 this.emit("error", new Error("Parsing container XML failed in getRootFiles: " + err.message));
                 return;
             }).bind(this));
@@ -246,18 +244,17 @@ class EPub extends EventEmitter {
      *  Parses the rootfile XML and calls rootfile parser
      **/
     handleRootFile() {
-
-        this.zip.readFile(this.rootFile, (function (err, data) {
+        this.zip.readFile(this.rootFile, ( (err, data) => {
             if (err) {
                 this.emit("error", new Error("Reading archive failed"));
                 return;
             }
-            var xml = data.toString("utf-8"),
+            let xml = data.toString("utf-8"),
                 xmlparser = new xml2js.Parser(xml2jsOptions);
 
             xmlparser.on("end", this.parseRootFile.bind(this));
 
-            xmlparser.on("error", (function (err) {
+            xmlparser.on("error", (err => {
                 this.emit("error", new Error("Parsing container XML failed in handleRootFile: " + err.message));
                 return;
             }).bind(this));
@@ -277,7 +274,7 @@ class EPub extends EventEmitter {
 
         this.version = rootfile['@'].version || '2.0';
 
-        var i, len, keys, keyparts, key;
+        let i, len, keys, keyparts, key;
         keys = Object.keys(rootfile);
         for (i = 0, len = keys.length; i < len; i++) {
             keyparts = keys[i].split(":");
@@ -311,7 +308,7 @@ class EPub extends EventEmitter {
      *  Parses "metadata" block (book metadata, title, author etc.)
      **/
     parseMetadata(metadata) {
-        var i, j, len, keys, keyparts, key;
+        let i, j, len, keys, keyparts, key;
 
         keys = Object.keys(metadata);
         for (i = 0, len = keys.length; i < len; i++) {
@@ -389,8 +386,8 @@ class EPub extends EventEmitter {
             }
         }
 
-        var metas = metadata['meta'] || {};
-        Object.keys(metas).forEach(function(key) {
+        let metas = metadata['meta'] || {};
+        Object.keys(metas).forEach(key => {
             var meta = metas[key];
             if (meta['@'] && meta['@'].name) {
                 var name = meta['@'].name;
@@ -412,7 +409,7 @@ class EPub extends EventEmitter {
      *  Parses "manifest" block (all items included, html files, images, styles)
      **/
     parseManifest(manifest) {
-        var i, len, path = this.rootFile.split("/"), element, path_str;
+        let i, len, path = this.rootFile.split("/"), element, path_str;
         path.pop();
         path_str = path.join("/");
 
@@ -438,7 +435,7 @@ class EPub extends EventEmitter {
      *  Parses "guide" block (locations of the fundamental structural components of the publication)
      **/
     parseGuide(guide) {
-        var i, len, path = this.rootFile.split("/"), element, path_str;
+        let i, len, path = this.rootFile.split("/"), element, path_str;
         path.pop();
         path_str = path.join("/");
 
@@ -469,12 +466,11 @@ class EPub extends EventEmitter {
      *  Parses "spine" block (all html elements that are shown to the reader)
      **/
     parseSpine(spine) {
-        var i, len, path = this.rootFile.split("/"), element;
+        let i, len, path = this.rootFile.split("/"), element;
         path.pop();
 
-        if (spine['@'] && spine['@'].toc) {
+        if (spine['@'] && spine['@'].toc)
             this.spine.toc = this.manifest[spine['@'].toc] || false;
-        }
 
         if (spine.itemref) {
             if(!Array.isArray(spine.itemref)){
@@ -505,12 +501,12 @@ class EPub extends EventEmitter {
             id_list[this.manifest[keys[i]].href] = keys[i];
         }
 
-        this.zip.readFile(this.spine.toc.href, (function (err, data) {
+        this.zip.readFile(this.spine.toc.href, ((err, data) => {
             if (err) {
                 this.emit("error", new Error("Reading archive failed"));
                 return;
             }
-            var xml = data.toString("utf-8"),
+            let xml = data.toString("utf-8"),
                 xmlparser = new xml2js.Parser(xml2jsOptions);
 
             xmlparser.on("end", (function (result) {
@@ -545,34 +541,32 @@ class EPub extends EventEmitter {
         level = level || 0;
 
         // don't go too far
-        if (level > 7) {
+        if (level > 7)
             return [];
-        }
 
-        var output = [];
+        let output = [];
 
-        if (!Array.isArray(branch)) {
+        if (!Array.isArray(branch))
             branch = [branch];
-        }
 
-        for (var i = 0; i < branch.length; i++) {
+        for (let i = 0; i < branch.length; i++) {
             if (branch[i].navLabel) {
 
-                var title = '';
+                let title = '';
                 if (branch[i].navLabel && typeof branch[i].navLabel.text == 'string') {
                     title = branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel===branch[i].navLabel && branch[i].navLabel.text.length > 0  ?
                          (branch[i].navLabel && branch[i].navLabel.text || branch[i].navLabel || "").trim() : '';
                 }
-                var order = Number(branch[i]["@"] && branch[i]["@"].playOrder || 0);
+                let order = Number(branch[i]["@"] && branch[i]["@"].playOrder || 0);
                 if (isNaN(order)) {
                     order = 0;
                 }
-                var href = '';
+                let href = '';
                 if (branch[i].content && branch[i].content["@"] && typeof branch[i].content["@"].src == 'string') {
                     href = branch[i].content["@"].src.trim();
                 }
 
-                var element = {
+                let element = {
                     level: level,
                     order: order,
                     title: title
@@ -613,41 +607,35 @@ class EPub extends EventEmitter {
      *  <head> etc. elements. Return only chapters with mime type application/xhtml+xml
      **/
     getChapter(id, callback) {
-        this.getChapterRaw(id, (function (err, str) {
+        this.getChapterRaw(id, ((err, str) => {
             if (err) {
                 callback(err);
                 return;
             }
 
-            var i, len, path = this.rootFile.split("/"), keys = Object.keys(this.manifest);
+            let i, len, path = this.rootFile.split("/"), keys = Object.keys(this.manifest);
             path.pop();
 
             // remove linebreaks (no multi line matches in JS regex!)
             str = str.replace(/\r?\n/g, "\u0000");
 
             // keep only <body> contents
-            str.replace(/<body[^>]*?>(.*)<\/body[^>]*?>/i, function (o, d) {
+            str.replace(/<body[^>]*?>(.*)<\/body[^>]*?>/i, (o, d) => {
                 str = d.trim();
             });
 
             // remove <script> blocks if any
-            str = str.replace(/<script[^>]*?>(.*?)<\/script[^>]*?>/ig, function (o, s) {
-                return "";
-            });
+            str = str.replace(/<script[^>]*?>(.*?)<\/script[^>]*?>/ig, (o, s) => "")
 
             // remove <style> blocks if any
-            str = str.replace(/<style[^>]*?>(.*?)<\/style[^>]*?>/ig, function (o, s) {
-                return "";
-            });
+            str = str.replace(/<style[^>]*?>(.*?)<\/style[^>]*?>/ig, (o, s) => "");
 
             // remove onEvent handlers
-            str = str.replace(/(\s)(on\w+)(\s*=\s*["']?[^"'\s>]*?["'\s>])/g, function (o, a, b, c) {
-                return a + "skip-" + b + c;
-            });
+            str = str.replace(/(\s)(on\w+)(\s*=\s*["']?[^"'\s>]*?["'\s>])/g, (o, a, b, c) => a + "skip-" + b + c)
 
             // replace images
-            str = str.replace(/(\ssrc\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (function (o, a, b, c) {
-                var img = path.concat([b]).join("/").trim(),
+            str = str.replace(/(\ssrc\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, ((o, a, b, c) => {
+                let img = path.concat([b]).join("/").trim(),
                     element;
 
                 for (i = 0, len = keys.length; i < len; i++) {
@@ -658,18 +646,14 @@ class EPub extends EventEmitter {
                 }
 
                 // include only images from manifest
-                if (element) {
-                    return a + this.imageroot + element.id + "/" + img + c;
-                } else {
-                    return "";
-                }
+                return element ? a + this.imageroot + element.id + "/" + img + c : ""
 
             }).bind(this));
 
             // replace links
-            str = str.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (function (o, a, b, c) {
-                var linkparts = b && b.split("#");
-                var link = linkparts.length ? path.concat([(linkparts.shift() || "")]).join("/").trim() : '',
+            str = str.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, ( (o, a, b, c) => {
+                let linkparts = b && b.split("#");
+                let link = linkparts.length ? path.concat([(linkparts.shift() || "")]).join("/").trim() : '',
                     element;
 
                 for (i = 0, len = keys.length; i < len; i++) {
@@ -679,16 +663,11 @@ class EPub extends EventEmitter {
                     }
                 }
 
-                if (linkparts.length) {
+                if (linkparts.length)
                     link  +=  "#" + linkparts.join("#");
-                }
 
                 // include only images from manifest
-                if (element) {
-                    return a + this.linkroot + element.id + "/" + link + c;
-                } else {
-                    return a + b + c;
-                }
+                return element ? a + this.linkroot + element.id + "/" + link + c : a + b + c;
 
             }).bind(this));
 
@@ -709,29 +688,24 @@ class EPub extends EventEmitter {
      **/
     getChapterRaw(id, callback) {
         if (this.manifest[id]) {
-
-            if (!(this.manifest[id]['media-type'] == "application/xhtml+xml" || this.manifest[id]['media-type'] == "image/svg+xml")) {
+            if (!(this.manifest[id]['media-type'] == "application/xhtml+xml" || this.manifest[id]['media-type'] == "image/svg+xml"))
                 return callback(new Error("Invalid mime type for chapter"));
-            }
 
-            this.zip.readFile(this.manifest[id].href, (function (err, data) {
+            this.zip.readFile(this.manifest[id].href, ((err, data) => {
                 if (err) {
                     callback(new Error("Reading archive failed"));
                     return;
                 }
 
-                var str = "";
-                if (data) {
-                  str = data.toString("utf-8");
-                };
-
+                let str = "";
+                if (data)
+                    str = data.toString("utf-8");
 
                 callback(null, str);
 
             }).bind(this));
-        } else {
+        } else
             callback(new Error("File not found"));
-        }
     };
 
 
@@ -747,14 +721,12 @@ class EPub extends EventEmitter {
     getImage(id, callback) {
         if (this.manifest[id]) {
 
-            if ((this.manifest[id]['media-type'] || "").toLowerCase().trim().substr(0, 6)  !=  "image/") {
+            if ((this.manifest[id]['media-type'] || "").toLowerCase().trim().substr(0, 6)  !=  "image/")
                 return callback(new Error("Invalid mime type for image"));
-            }
 
             this.getFile(id, callback);
-        } else {
+        } else
             callback(new Error("File not found"));
-        }
     };
 
 
@@ -768,8 +740,7 @@ class EPub extends EventEmitter {
      **/
     getFile(id, callback) {
         if (this.manifest[id]) {
-
-            this.zip.readFile(this.manifest[id].href, (function (err, data) {
+            this.zip.readFile(this.manifest[id].href, ((err, data) => {
                 if (err) {
                     callback(new Error("Reading archive failed"));
                     return;
@@ -777,29 +748,27 @@ class EPub extends EventEmitter {
 
                 callback(null, data, this.manifest[id]['media-type']);
             }).bind(this));
-        } else {
+        } else
             callback(new Error("File not found"));
-        }
     };
 
 
     readFile(filename, options, callback_) {
-        var callback = arguments[arguments.length - 1];
+        let callback = arguments[arguments.length - 1];
 
         if (typeof options === 'function' || !options) {
             this.zip.readFile(filename, callback);
         } else if (typeof options === 'string') {
             // options is an encoding
-            this.zip.readFile(filename, function(err, data) {
+            this.zip.readFile(filename, (err, data) => {
                 if (err) {
                     callback(new Error('Reading archive failed'));
                     return;
                 }
                 callback(null, data.toString(options));
             });
-        } else {
+        } else
             throw new TypeError('Bad arguments');
-        }
     };
 
     /**
@@ -808,10 +777,7 @@ class EPub extends EventEmitter {
      *  Parses the tree to see if there's an ecnryption file, signifying the presence of DRM
      *  see: https://stackoverflow.com/questions/14442968/how-to-check-if-an-epub-file-is-drm-protected
      **/
-    hasDRM () {
-        const drmFile = 'META-INF/encryption.xml';
-        return this.zip.names.includes(drmFile);
-    };
+    hasDRM = () => this.zip.names.includes("META-INF/encryption.xml");
 }
 
 // Expose to the world
