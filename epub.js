@@ -315,8 +315,11 @@ class EPub extends EventEmitter {
 
         keys = Object.keys(metadata);
         for (i = 0, len = keys.length; i < len; i++) {
-            keyparts = keys[i].split(":");
+            const fullKey = keys[i];
+            const metadataValue = metadata[fullKey];
+            keyparts = fullKey.split(":");
             key = (keyparts.pop() || "").toLowerCase().trim();
+
             switch (key) {
             case "publisher":
                 if (Array.isArray(metadata[keys[i]])) {
@@ -340,10 +343,19 @@ class EPub extends EventEmitter {
                 }
                 break;
             case "subject":
-                if (Array.isArray(metadata[keys[i]])) {
-                    this.metadata.subject = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+                if (Array.isArray(metadataValue)) {
+                    if (metadataValue.length < 1) {
+                        this.metadata.subject = "";
+                    } else {
+                        // Set a `subjects` property in case there are multiple subjects.
+                        this.metadata.subjects = metadataValue.map(val => String(val["#"] || val || "").trim());
+                        if (this.metadata.subjects.length > 0) {
+                            this.metadata.subject = this.metadata.subjects[0];
+                        }
+                    }
                 } else {
-                    this.metadata.subject = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                    this.metadata.subject = String(metadataValue["#"] || metadataValue || "").trim();
+                    this.metadata.subjects = [this.metadata.subject];
                 }
                 break;
             case "description":
@@ -370,20 +382,22 @@ class EPub extends EventEmitter {
                 }
                 break;
             case "identifier":
-                if (metadata[keys[i]]["@"] && metadata[keys[i]]["@"]["opf:scheme"] == "ISBN") {
-                    this.metadata.ISBN = String(metadata[keys[i]]["#"] || "").trim();
-                } else if (metadata[keys[i]]["@"] && metadata[keys[i]]["@"].id && metadata[keys[i]]["@"].id.match(/uuid/i)) {
-                    this.metadata.UUID = String(metadata[keys[i]]["#"] || "").replace('urn:uuid:', '').toUpperCase().trim();
-                } else if (Array.isArray(metadata[keys[i]])) {
-                    for (j = 0; j < metadata[keys[i]].length; j++) {
-                        if (metadata[keys[i]][j]["@"]) {
-                            if (metadata[keys[i]][j]["@"]["opf:scheme"] == "ISBN") {
-                                this.metadata.ISBN = String(metadata[keys[i]][j]["#"] || "").trim();
-                            } else if (metadata[keys[i]][j]["@"].id && metadata[keys[i]][j]["@"].id.match(/uuid/i)) {
-                                this.metadata.UUID = String(metadata[keys[i]][j]["#"] || "").replace('urn:uuid:', '').toUpperCase().trim();
-                            }
-                        }
+                if (Array.isArray(metadataValue)) {
+                    metadataValue.forEach(subVal => extractIdentifiers(subVal, this.metadata));
+                } else {
+                    extractIdentifiers(metadataValue, this.metadata);
+                }
+                break;
+            case "source":
+                if (Array.isArray(metadataValue)) {
+                    if (metadataValue.length > 0) {
+                        const firstVal = metadataValue[0];
+                        this.metadata.source = String(firstVal["#"] || firstVal || "").trim();
+                    } else {
+                        this.metadata.source = "";
                     }
+                } else {
+                    this.metadata.source = String(metadataValue["#"] || metadataValue || "").trim();
                 }
                 break;
             }
@@ -812,6 +826,18 @@ class EPub extends EventEmitter {
         const drmFile = 'META-INF/encryption.xml';
         return this.zip.names.includes(drmFile);
     };
+}
+
+function extractIdentifiers(metadataValue, topLevelMetadataObj) {
+    const attrs = metadataValue["@"];
+    const contents = metadataValue["#"];
+    if (attrs) {
+        if (attrs["opf:scheme"]) {
+            topLevelMetadataObj[attrs["opf:scheme"]] = String(contents || "").trim();
+        } else if (attrs.id && attrs.id.match(/uuid/i)) {
+            topLevelMetadataObj.UUID = String(contents || "").replace('urn:uuid:', '').toUpperCase().trim();
+        }
+    }
 }
 
 // Expose to the world
