@@ -343,10 +343,19 @@ class EPub extends EventEmitter {
                 }
                 break;
             case "subject":
-                if (Array.isArray(metadata[keys[i]])) {
-                    this.metadata.subject = String(metadata[keys[i]][0] && metadata[keys[i]][0]["#"] || metadata[keys[i]][0] || "").trim();
+                if (Array.isArray(metadataValue)) {
+                    if (metadataValue.length < 1) {
+                        this.metadata.subject = "";
+                    } else {
+                        // Set a `subjects` property in case there are multiple subjects.
+                        this.metadata.subjects = metadataValue.map(val => String(val["#"] || val || "").trim());
+                        if (this.metadata.subjects.length > 0) {
+                            this.metadata.subject = this.metadata.subjects[0];
+                        }
+                    }
                 } else {
-                    this.metadata.subject = String(metadata[keys[i]]["#"] || metadata[keys[i]] || "").trim();
+                    this.metadata.subject = String(metadataValue["#"] || metadataValue || "").trim();
+                    this.metadata.subjects = [this.metadata.subject];
                 }
                 break;
             case "description":
