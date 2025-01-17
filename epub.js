@@ -373,20 +373,10 @@ class EPub extends EventEmitter {
                 }
                 break;
             case "identifier":
-                if (metadata[keys[i]]["@"] && metadata[keys[i]]["@"]["opf:scheme"] == "ISBN") {
-                    this.metadata.ISBN = String(metadata[keys[i]]["#"] || "").trim();
-                } else if (metadata[keys[i]]["@"] && metadata[keys[i]]["@"].id && metadata[keys[i]]["@"].id.match(/uuid/i)) {
-                    this.metadata.UUID = String(metadata[keys[i]]["#"] || "").replace('urn:uuid:', '').toUpperCase().trim();
-                } else if (Array.isArray(metadata[keys[i]])) {
-                    for (j = 0; j < metadata[keys[i]].length; j++) {
-                        if (metadata[keys[i]][j]["@"]) {
-                            if (metadata[keys[i]][j]["@"]["opf:scheme"] == "ISBN") {
-                                this.metadata.ISBN = String(metadata[keys[i]][j]["#"] || "").trim();
-                            } else if (metadata[keys[i]][j]["@"].id && metadata[keys[i]][j]["@"].id.match(/uuid/i)) {
-                                this.metadata.UUID = String(metadata[keys[i]][j]["#"] || "").replace('urn:uuid:', '').toUpperCase().trim();
-                            }
-                        }
-                    }
+                if (Array.isArray(metadataValue)) {
+                    metadataValue.forEach(subVal => extractIdentifiers(subVal, this.metadata));
+                } else {
+                    extractIdentifiers(metadataValue, this.metadata);
                 }
                 break;
             case "source":
@@ -827,6 +817,18 @@ class EPub extends EventEmitter {
         const drmFile = 'META-INF/encryption.xml';
         return this.zip.names.includes(drmFile);
     };
+}
+
+function extractIdentifiers(metadataValue, topLevelMetadataObj) {
+    const attrs = metadataValue["@"];
+    const contents = metadataValue["#"];
+    if (attrs) {
+        if (attrs["opf:scheme"]) {
+            topLevelMetadataObj[attrs["opf:scheme"]] = String(contents || "").trim();
+        } else if (attrs.id && attrs.id.match(/uuid/i)) {
+            topLevelMetadataObj.UUID = String(contents || "").replace('urn:uuid:', '').toUpperCase().trim();
+        }
+    }
 }
 
 // Expose to the world
