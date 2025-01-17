@@ -315,8 +315,11 @@ class EPub extends EventEmitter {
 
         keys = Object.keys(metadata);
         for (i = 0, len = keys.length; i < len; i++) {
-            keyparts = keys[i].split(":");
+            const fullKey = keys[i];
+            const metadataValue = metadata[fullKey];
+            keyparts = fullKey.split(":");
             key = (keyparts.pop() || "").toLowerCase().trim();
+
             switch (key) {
             case "publisher":
                 if (Array.isArray(metadata[keys[i]])) {
@@ -384,6 +387,18 @@ class EPub extends EventEmitter {
                             }
                         }
                     }
+                }
+                break;
+            case "source":
+                if (Array.isArray(metadataValue)) {
+                    if (metadataValue.length > 0) {
+                        const firstVal = metadataValue[0];
+                        this.metadata.source = String(firstVal["#"] || firstVal || "").trim();
+                    } else {
+                        this.metadata.source = "";
+                    }
+                } else {
+                    this.metadata.source = String(metadataValue["#"] || metadataValue || "").trim();
                 }
                 break;
             }
