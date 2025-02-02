@@ -1,6 +1,6 @@
-var EPub = require("../epub");
+const EPub = require("../epub");
 
-var epub = new EPub("alice.epub", "/imagewebroot/", "/articlewebroot/");
+const epub = new EPub("alice.epub", "/imagewebroot/", "/articlewebroot/");
 epub.on("error", function(err){
     console.log("ERROR\n-----");
     throw err;
@@ -25,6 +25,7 @@ epub.on("end", function(err){
         console.log("\nFIRST CHAPTER:\n");
         console.log(data.substr(0,512)+"..."); // first 512 bytes
     });
+    console.log(epub.hasDRM());
 
     /*
     epub.getImage(image_id, function(err, data, mimeType){
