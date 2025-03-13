@@ -3,9 +3,28 @@ var xml2jsOptions = xml2js.defaults['0.1'];
 var EventEmitter = require('events').EventEmitter;
 
 try {
-    // zipfile is an optional dependency:
-    var ZipFile = require("zipfile").ZipFile;
-} catch (err) {
+    var zipread = require("zipread");
+    var ZipFile = function(filename) {
+        var zip = zipread(filename);
+        this.zip = zip;
+        var files = zip.files;
+
+        files = Object.values(files).filter((file) => {
+            return !file.dir;
+        }).map((file) => {
+            return file.name;
+        });
+
+        this.names = files;
+        this.count = this.names.length;
+    };
+    ZipFile.prototype.readFile = function(name, cb) {
+        this.zip.readFile(name
+            , function(err, buffer) {
+                return cb(null, buffer);
+            });
+    };
+} catch(err) {
     // Mock zipfile using pure-JS adm-zip:
     var AdmZip = require('adm-zip');
 
