@@ -1,0 +1,6 @@
+messages:
+  - role: system
+    content: build some automated tests to test EPUB standard compliance
+  - role: user
+    content: which feature do you want to test?
+model: openai/gpt-4.1
