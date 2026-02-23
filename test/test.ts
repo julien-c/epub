@@ -29,7 +29,7 @@ describe("EPub", () => {
 
 	it("supports empty chapters", () => {
 		const branch = [{ navLabel: { text: "" } }];
-		const epub = new EPub();
+		const epub = new EPub("");
 		const res = epub.walkNavMap(branch, [], {});
 		assert.ok(res);
 	});
