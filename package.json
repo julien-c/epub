@@ -37,12 +37,9 @@
       "default": "./dist/epub.js"
     }
   },
-  "bin": {
-    "epub": "./dist/cli.js"
-  },
+  "bin": "./dist/cli.js",
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build",
     "format": "oxfmt --write '**/*.ts'",
     "format:check": "oxfmt --check '**/*.ts'",
     "lint": "oxlint -c oxlint.json --fix",

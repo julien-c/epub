@@ -20,4 +20,10 @@ jobs:
       - run: npm run format:check
       - run: npm run lint:check
       - run: npm test
-      - run: npm publish --provenance --access public
+      - run: npm run build
+      - run: |
+          if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+            npm publish --provenance --access public --tag next
+          else
+            npm publish --provenance --access public
+          fi
