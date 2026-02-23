@@ -25,17 +25,24 @@
   },
   "files": [
     "epub.ts",
-    "cli.ts"
+    "cli.ts",
+    "dist"
   ],
   "type": "module",
-  "main": "./epub.ts",
+  "main": "./dist/epub.js",
+  "types": "./dist/epub.d.ts",
   "exports": {
-    ".": "./epub.ts"
+    ".": {
+      "types": "./dist/epub.d.ts",
+      "default": "./dist/epub.js"
+    }
   },
   "bin": {
-    "epub": "./cli.ts"
+    "epub": "./dist/cli.js"
   },
   "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
     "format": "oxfmt --write '**/*.ts'",
     "format:check": "oxfmt --check '**/*.ts'",
     "lint": "oxlint -c oxlint.json --fix",
@@ -49,7 +56,8 @@
   "devDependencies": {
     "@types/node": "^25.3.0",
     "oxfmt": "^0.35.0",
-    "oxlint": "^1.50.0"
+    "oxlint": "^1.50.0",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=22.6.0"
