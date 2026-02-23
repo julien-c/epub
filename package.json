@@ -1,8 +1,13 @@
 {
   "name": "epub",
-  "description": "Parse ePub electronic book files with Node.JS",
   "version": "2.0.0",
-  "type": "module",
+  "description": "Parse ePub electronic book files with Node.JS",
+  "keywords": [
+    "books",
+    "epub"
+  ],
+  "homepage": "http://github.com/julien-c/epub",
+  "license": "MIT",
   "author": "Andris Reinman",
   "contributors": [
     {
@@ -15,7 +20,6 @@
       "url": "https://github.com/julien-c"
     }
   ],
-  "homepage": "http://github.com/julien-c/epub",
   "repository": {
     "type": "git",
     "url": "http://github.com/julien-c/epub.git"
@@ -23,27 +27,29 @@
   "files": [
     "epub.ts"
   ],
+  "type": "module",
   "main": "./epub.ts",
   "exports": {
     ".": "./epub.ts"
   },
-  "license": "MIT",
-  "engines": {
-    "node": ">=22.6.0"
+  "scripts": {
+    "format": "oxfmt --write '**/*.ts'",
+    "format:check": "oxfmt --check '**/*.ts'",
+    "lint": "oxlint -c oxlint.json --fix",
+    "lint:check": "oxlint -c oxlint.json",
+    "test": "node --experimental-strip-types --no-warnings test/test.ts"
   },
-  "keywords": [
-    "epub",
-    "books"
-  ],
   "dependencies": {
     "adm-zip": "^0.4.11",
     "fast-xml-parser": "^5.3.7"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "oxfmt": "^0.35.0",
+    "oxlint": "^1.50.0"
   },
-  "scripts": {
-    "test": "node --experimental-strip-types --no-warnings test/test.ts"
+  "engines": {
+    "node": ">=22.6.0"
   }
 }

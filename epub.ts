@@ -251,10 +251,7 @@ export class EPub extends EventEmitter {
 		let filename: string | false = false;
 
 		for (const rf of asArray(rootfiles.rootfile as Record<string, unknown>)) {
-			if (
-				rf["@_media-type"] === "application/oebps-package+xml" &&
-				rf["@_full-path"]
-			) {
+			if (rf["@_media-type"] === "application/oebps-package+xml" && rf["@_full-path"]) {
 				filename = String(rf["@_full-path"]).toLowerCase().trim();
 				break;
 			}
@@ -346,7 +343,7 @@ export class EPub extends EventEmitter {
 						const first = metadataValue[0] as Record<string, unknown> | string | undefined;
 						this.metadata.creator = textOf(first);
 						this.metadata.creatorFileAs = String(
-							(typeof first === "object" && first?.["@_opf:file-as"]) || this.metadata.creator
+							(typeof first === "object" && first?.["@_opf:file-as"]) || this.metadata.creator,
 						).trim();
 					} else {
 						this.metadata.creator = textOf(metadataValue);
@@ -451,17 +448,14 @@ export class EPub extends EventEmitter {
 			result = parseXml(xml);
 		} catch (err) {
 			throw new Error(
-				"Parsing container XML failed in TOC: " + (err instanceof Error ? err.message : String(err))
+				"Parsing container XML failed in TOC: " +
+					(err instanceof Error ? err.message : String(err)),
 			);
 		}
 
 		const navMap = result.navMap as Record<string, unknown> | undefined;
 		if (navMap?.navPoint) {
-			this.toc = this.walkNavMap(
-				navMap.navPoint as Record<string, unknown>[],
-				path,
-				idList
-			);
+			this.toc = this.walkNavMap(navMap.navPoint as Record<string, unknown>[], path, idList);
 		}
 	}
 
@@ -469,7 +463,7 @@ export class EPub extends EventEmitter {
 		branch: Record<string, unknown> | Record<string, unknown>[],
 		path: string[],
 		idList: Record<string, string>,
-		level: number = 0
+		level: number = 0,
 	): TocElement[] {
 		if (level > 7) return [];
 
@@ -514,12 +508,7 @@ export class EPub extends EventEmitter {
 			}
 			if (item.navPoint) {
 				output.push(
-					...this.walkNavMap(
-						item.navPoint as Record<string, unknown>[],
-						path,
-						idList,
-						level + 1
-					)
+					...this.walkNavMap(item.navPoint as Record<string, unknown>[], path, idList, level + 1),
 				);
 			}
 		}
@@ -576,7 +565,10 @@ export class EPub extends EventEmitter {
 			s = s.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (_o, a, b, c) => {
 				const linkparts = b ? b.split("#") : [];
 				let link = linkparts.length
-					? path.concat([linkparts.shift() || ""]).join("/").trim()
+					? path
+							.concat([linkparts.shift() || ""])
+							.join("/")
+							.trim()
 					: "";
 				let element: Record<string, unknown> | undefined;
 
@@ -622,7 +614,7 @@ export class EPub extends EventEmitter {
 
 	getImage(
 		id: string,
-		callback: (error: Error | null, data?: Buffer, mimeType?: string) => void
+		callback: (error: Error | null, data?: Buffer, mimeType?: string) => void,
 	): void {
 		if (this.manifest[id]) {
 			const mediaType = ((this.manifest[id]["media-type"] as string) || "").toLowerCase().trim();
@@ -637,7 +629,7 @@ export class EPub extends EventEmitter {
 
 	getFile(
 		id: string,
-		callback: (error: Error | null, data?: Buffer, mimeType?: string) => void
+		callback: (error: Error | null, data?: Buffer, mimeType?: string) => void,
 	): void {
 		if (this.manifest[id]) {
 			this.zip.readFile(this.manifest[id].href as string, (err, data) => {
@@ -652,7 +644,7 @@ export class EPub extends EventEmitter {
 	readFile(
 		filename: string,
 		options?: string | ((err: Error | null, data?: Buffer | string) => void),
-		callback_?: (err: Error | null, data?: Buffer | string) => void
+		callback_?: (err: Error | null, data?: Buffer | string) => void,
 	): void {
 		const callback = (callback_ ?? options) as (err: Error | null, data?: Buffer | string) => void;
 

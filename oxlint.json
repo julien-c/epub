@@ -1,0 +1,6 @@
+{
+	"ignorePatterns": ["**/*.js"],
+	"rules": {
+		"curly": "error"
+	}
+}

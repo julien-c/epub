@@ -48,11 +48,7 @@ describe("EPub", () => {
 		try {
 			await parseEpub(epub);
 		} catch (err) {
-			assert.ok(
-				(err as Error).message.includes(
-					"Parsing container XML failed"
-				)
-			);
+			assert.ok((err as Error).message.includes("Parsing container XML failed"));
 			return;
 		}
 		assert.fail("should not get here");
