@@ -1,8 +1,12 @@
 import { EventEmitter } from "node:events";
-import xml2js from "xml2js";
+import { XMLParser, XMLValidator } from "fast-xml-parser";
 import AdmZip from "adm-zip";
 
-const xml2jsOptions = (xml2js.defaults as Record<string, unknown>)["0.1"] as Record<string, unknown>;
+const xmlParser = new XMLParser({
+	ignoreAttributes: false,
+	attributeNamePrefix: "@_",
+	ignoreDeclaration: true,
+});
 
 interface ZipLike {
 	names: string[];
@@ -39,13 +43,48 @@ function readFileAsync(zip: ZipLike, name: string): Promise<Buffer> {
 	});
 }
 
-function parseXml(xml: string): Promise<Record<string, unknown>> {
-	return new Promise((resolve, reject) => {
-		const parser = new xml2js.Parser(xml2jsOptions);
-		parser.on("end", resolve);
-		parser.on("error", reject);
-		parser.parseString(xml);
-	});
+/**
+ * Parse XML string, validate it, strip the root element, and return the children.
+ */
+function parseXml(xml: string): Record<string, unknown> {
+	const validation = XMLValidator.validate(xml);
+	if (validation !== true) {
+		const e = validation.err;
+		throw new Error(`${e.msg}\nLine: ${e.line}\nColumn: ${e.col}\nChar: `);
+	}
+	const raw = xmlParser.parse(xml) as Record<string, unknown>;
+	// Strip root element (equivalent to xml2js explicitRoot: false)
+	const keys = Object.keys(raw);
+	if (keys.length === 1) return raw[keys[0]] as Record<string, unknown>;
+	return raw;
+}
+
+/** Extract text content from a parsed XML value (string, or object with #text). */
+function textOf(val: unknown): string {
+	if (val == null) return "";
+	if (typeof val === "string") return val.trim();
+	if (typeof val === "number") return String(val);
+	if (typeof val === "object" && "#text" in (val as object)) {
+		return String((val as Record<string, unknown>)["#text"] ?? "").trim();
+	}
+	return "";
+}
+
+/** Extract all @_ prefixed attributes from a parsed element into a clean object. */
+function attrsOf(obj: Record<string, unknown>): Record<string, string> {
+	const result: Record<string, string> = {};
+	for (const key of Object.keys(obj)) {
+		if (key.startsWith("@_")) {
+			result[key.slice(2)] = String(obj[key]);
+		}
+	}
+	return result;
+}
+
+/** Ensure value is an array. */
+function asArray<T>(val: T | T[] | undefined): T[] {
+	if (val == null) return [];
+	return Array.isArray(val) ? val : [val];
 }
 
 export interface TocElement {
@@ -77,15 +116,16 @@ export interface ParseOptions {
 	xml2jsOptions?: Record<string, unknown>;
 }
 
-function extractIdentifiers(metadataValue: Record<string, unknown>, out: Metadata): void {
-	const attrs = metadataValue["@"] as Record<string, string> | undefined;
-	const contents = metadataValue["#"];
-	if (attrs) {
-		if (attrs["opf:scheme"]) {
-			(out as Record<string, unknown>)[attrs["opf:scheme"]] = String(contents || "").trim();
-		} else if (attrs.id && attrs.id.match(/uuid/i)) {
-			out.UUID = String(contents || "").replace("urn:uuid:", "").toUpperCase().trim();
-		}
+function extractIdentifiers(val: unknown, out: Metadata): void {
+	if (typeof val !== "object" || val == null) return;
+	const obj = val as Record<string, unknown>;
+	const scheme = obj["@_opf:scheme"] as string | undefined;
+	const id = obj["@_id"] as string | undefined;
+	const contents = textOf(obj);
+	if (scheme) {
+		(out as Record<string, unknown>)[scheme] = contents;
+	} else if (id && id.match(/uuid/i)) {
+		out.UUID = contents.replace("urn:uuid:", "").toUpperCase().trim();
 	}
 }
 
@@ -127,10 +167,6 @@ export class EPub extends EventEmitter {
 	}
 
 	parse(options: ParseOptions = {}): void {
-		if (options.xml2jsOptions) {
-			Object.assign(xml2jsOptions, options.xml2jsOptions);
-		}
-
 		this.containerFile = false;
 		this.mimeFile = false;
 		this.rootFile = false;
@@ -205,34 +241,23 @@ export class EPub extends EventEmitter {
 
 		const data = await readFileAsync(this.zip, this.containerFile);
 		const xml = data.toString("utf-8").toLowerCase().trim();
-		const result = (await parseXml(xml)) as Record<string, unknown>;
+		const result = parseXml(xml);
 
 		const rootfiles = result.rootfiles as Record<string, unknown> | undefined;
 		if (!rootfiles || !rootfiles.rootfile) {
 			throw new Error("No rootfiles found");
 		}
 
-		const rootfile = rootfiles.rootfile as Record<string, unknown> | Record<string, unknown>[];
 		let filename: string | false = false;
 
-		if (Array.isArray(rootfile)) {
-			for (const rf of rootfile) {
-				const attrs = rf["@"] as Record<string, string> | undefined;
-				if (
-					attrs &&
-					attrs["media-type"] === "application/oebps-package+xml" &&
-					attrs["full-path"]
-				) {
-					filename = attrs["full-path"].toLowerCase().trim();
-					break;
-				}
+		for (const rf of asArray(rootfiles.rootfile as Record<string, unknown>)) {
+			if (
+				rf["@_media-type"] === "application/oebps-package+xml" &&
+				rf["@_full-path"]
+			) {
+				filename = String(rf["@_full-path"]).toLowerCase().trim();
+				break;
 			}
-		} else {
-			const attrs = (rootfile as Record<string, unknown>)["@"] as Record<string, string> | undefined;
-			if (!attrs || attrs["media-type"] !== "application/oebps-package+xml" || !attrs["full-path"]) {
-				throw new Error("Rootfile in unknown format");
-			}
-			filename = attrs["full-path"].toLowerCase().trim();
 		}
 
 		if (!filename) {
@@ -258,10 +283,10 @@ export class EPub extends EventEmitter {
 	}
 
 	private _parseRootFile(rootfile: Record<string, unknown>): void {
-		const attrs = rootfile["@"] as Record<string, string> | undefined;
-		this.version = attrs?.version || "2.0";
+		this.version = String(rootfile["@_version"] || "2.0");
 
 		for (const fullKey of Object.keys(rootfile)) {
+			if (fullKey.startsWith("@_")) continue;
 			const key = (fullKey.split(":").pop() || "").toLowerCase().trim();
 			switch (key) {
 				case "metadata":
@@ -282,110 +307,83 @@ export class EPub extends EventEmitter {
 
 	private _parseMetadata(metadata: Record<string, unknown>): void {
 		for (const fullKey of Object.keys(metadata)) {
+			if (fullKey.startsWith("@_")) continue;
 			const metadataValue = metadata[fullKey];
 			const key = (fullKey.split(":").pop() || "").toLowerCase().trim();
 
 			switch (key) {
 				case "publisher":
-				case "language":
 				case "title":
 				case "description":
 				case "date": {
-					const val = this._extractSimpleValue(metadataValue);
-					(this.metadata as Record<string, unknown>)[key] =
-						key === "language" ? val.toLowerCase() : val;
+					if (Array.isArray(metadataValue)) {
+						(this.metadata as Record<string, unknown>)[key] = textOf(metadataValue[0]);
+					} else {
+						(this.metadata as Record<string, unknown>)[key] = textOf(metadataValue);
+					}
+					break;
+				}
+				case "language": {
+					if (Array.isArray(metadataValue)) {
+						this.metadata.language = textOf(metadataValue[0]).toLowerCase();
+					} else {
+						this.metadata.language = textOf(metadataValue).toLowerCase();
+					}
 					break;
 				}
 				case "subject": {
-					if (Array.isArray(metadataValue)) {
-						if (metadataValue.length < 1) {
-							this.metadata.subject = "";
-						} else {
-							this.metadata.subjects = metadataValue.map((v) =>
-								String((v as Record<string, unknown>)["#"] || v || "").trim()
-							);
-							if (this.metadata.subjects.length > 0) {
-								this.metadata.subject = this.metadata.subjects[0];
-							}
-						}
+					const subjects = asArray(metadataValue);
+					if (subjects.length === 0) {
+						this.metadata.subject = "";
 					} else {
-						const mv = metadataValue as Record<string, unknown>;
-						this.metadata.subject = String(mv["#"] || mv || "").trim();
-						this.metadata.subjects = [this.metadata.subject];
+						this.metadata.subjects = subjects.map((v) => textOf(v));
+						this.metadata.subject = this.metadata.subjects[0] ?? "";
 					}
 					break;
 				}
 				case "creator": {
 					if (Array.isArray(metadataValue)) {
-						const first = metadataValue[0] as Record<string, unknown> | undefined;
-						this.metadata.creator = String(
-							(first && first["#"]) || first || ""
-						).trim();
-						const firstAttrs = first?.["@"] as Record<string, string> | undefined;
+						const first = metadataValue[0] as Record<string, unknown> | string | undefined;
+						this.metadata.creator = textOf(first);
 						this.metadata.creatorFileAs = String(
-							firstAttrs?.["opf:file-as"] || this.metadata.creator
+							(typeof first === "object" && first?.["@_opf:file-as"]) || this.metadata.creator
 						).trim();
 					} else {
-						const mv = metadataValue as Record<string, unknown>;
-						this.metadata.creator = String(mv["#"] || mv || "").trim();
-						const attrs = mv["@"] as Record<string, string> | undefined;
-						this.metadata.creatorFileAs = String(
-							attrs?.["opf:file-as"] || this.metadata.creator
-						).trim();
+						this.metadata.creator = textOf(metadataValue);
+						const fileAs =
+							typeof metadataValue === "object" &&
+							metadataValue != null &&
+							(metadataValue as Record<string, unknown>)["@_opf:file-as"];
+						this.metadata.creatorFileAs = String(fileAs || this.metadata.creator).trim();
 					}
 					break;
 				}
 				case "identifier": {
-					if (Array.isArray(metadataValue)) {
-						for (const v of metadataValue) {
-							extractIdentifiers(v as Record<string, unknown>, this.metadata);
-						}
-					} else {
-						extractIdentifiers(metadataValue as Record<string, unknown>, this.metadata);
+					for (const v of asArray(metadataValue)) {
+						extractIdentifiers(v, this.metadata);
 					}
 					break;
 				}
 				case "source": {
-					if (Array.isArray(metadataValue)) {
-						if (metadataValue.length > 0) {
-							const firstVal = metadataValue[0] as Record<string, unknown>;
-							this.metadata.source = String(firstVal["#"] || firstVal || "").trim();
-						} else {
-							this.metadata.source = "";
-						}
-					} else {
-						const mv = metadataValue as Record<string, unknown>;
-						this.metadata.source = String(mv["#"] || mv || "").trim();
-					}
+					const sources = asArray(metadataValue);
+					this.metadata.source = sources.length > 0 ? textOf(sources[0]) : "";
 					break;
 				}
 			}
 		}
 
-		const metas = (metadata["meta"] || {}) as Record<string, Record<string, unknown>>;
-		for (const k of Object.keys(metas)) {
-			const meta = metas[k];
-			const attrs = meta["@"] as Record<string, string> | undefined;
-			if (attrs?.name) {
-				(this.metadata as Record<string, unknown>)[attrs.name] = attrs.content;
-			}
-			if (meta["#"] && attrs?.property) {
-				(this.metadata as Record<string, unknown>)[attrs.property] = meta["#"];
-			}
-			if ((meta as Record<string, unknown>).name === "cover") {
-				(this.metadata as Record<string, unknown>)[(meta as Record<string, unknown>).name as string] =
-					(meta as Record<string, unknown>).content;
-			}
-		}
-	}
+		for (const meta of asArray(metadata.meta as Record<string, unknown>)) {
+			const name = meta["@_name"] as string | undefined;
+			const content = meta["@_content"] as string | undefined;
+			const property = meta["@_property"] as string | undefined;
 
-	private _extractSimpleValue(val: unknown): string {
-		if (Array.isArray(val)) {
-			const first = val[0] as Record<string, unknown> | undefined;
-			return String((first && first["#"]) || first || "").trim();
+			if (name) {
+				(this.metadata as Record<string, unknown>)[name] = content;
+			}
+			if (meta["#text"] && property) {
+				(this.metadata as Record<string, unknown>)[property] = meta["#text"];
+			}
 		}
-		const v = val as Record<string, unknown>;
-		return String(v["#"] || v || "").trim();
 	}
 
 	private _parseManifest(manifest: Record<string, unknown>): void {
@@ -393,17 +391,13 @@ export class EPub extends EventEmitter {
 		path.pop();
 		const pathStr = path.join("/");
 
-		const items = manifest.item as Record<string, unknown>[] | undefined;
-		if (!items) return;
-
-		for (const item of items) {
-			const attrs = item["@"] as Record<string, string> | undefined;
-			if (attrs) {
-				const element = { ...attrs } as Record<string, unknown>;
-				if (element.href && (element.href as string).substring(0, pathStr.length) !== pathStr) {
-					element.href = path.concat([element.href as string]).join("/");
-				}
-				this.manifest[attrs.id] = element;
+		for (const item of asArray(manifest.item as Record<string, unknown>)) {
+			const element = attrsOf(item);
+			if (element.href && element.href.substring(0, pathStr.length) !== pathStr) {
+				element.href = path.concat([element.href]).join("/");
+			}
+			if (element.id) {
+				this.manifest[element.id] = element;
 			}
 		}
 	}
@@ -413,40 +407,25 @@ export class EPub extends EventEmitter {
 		path.pop();
 		const pathStr = path.join("/");
 
-		let refs = guide.reference as Record<string, unknown>[] | Record<string, unknown> | undefined;
-		if (!refs) return;
-		if (!Array.isArray(refs)) {
-			refs = [refs];
-		}
-
-		for (const ref of refs) {
-			const attrs = ref["@"] as Record<string, string> | undefined;
-			if (attrs) {
-				const element = { ...attrs } as Record<string, unknown>;
-				if (element.href && (element.href as string).substring(0, pathStr.length) !== pathStr) {
-					element.href = path.concat([element.href as string]).join("/");
-				}
-				this.guide.push(element);
+		for (const ref of asArray(guide.reference as Record<string, unknown>)) {
+			const element = attrsOf(ref);
+			if (element.href && element.href.substring(0, pathStr.length) !== pathStr) {
+				element.href = path.concat([element.href]).join("/");
 			}
+			this.guide.push(element);
 		}
 	}
 
 	private _parseSpine(spine: Record<string, unknown>): void {
-		const attrs = spine["@"] as Record<string, string> | undefined;
-		if (attrs?.toc) {
-			this.spine.toc = this.manifest[attrs.toc] || false;
+		const toc = spine["@_toc"] as string | undefined;
+		if (toc) {
+			this.spine.toc = this.manifest[toc] || false;
 		}
 
-		let itemrefs = spine.itemref as Record<string, unknown>[] | Record<string, unknown> | undefined;
-		if (!itemrefs) return;
-		if (!Array.isArray(itemrefs)) {
-			itemrefs = [itemrefs];
-		}
-
-		for (const itemref of itemrefs) {
-			const iattrs = itemref["@"] as Record<string, string> | undefined;
-			if (iattrs) {
-				const element = this.manifest[iattrs.idref];
+		for (const itemref of asArray(spine.itemref as Record<string, unknown>)) {
+			const idref = itemref["@_idref"] as string | undefined;
+			if (idref) {
+				const element = this.manifest[idref];
 				if (element) {
 					this.spine.contents.push(element);
 				}
@@ -469,7 +448,7 @@ export class EPub extends EventEmitter {
 		const xml = data.toString("utf-8");
 		let result: Record<string, unknown>;
 		try {
-			result = (await parseXml(xml)) as Record<string, unknown>;
+			result = parseXml(xml);
 		} catch (err) {
 			throw new Error(
 				"Parsing container XML failed in TOC: " + (err instanceof Error ? err.message : String(err))
@@ -502,21 +481,16 @@ export class EPub extends EventEmitter {
 			if (navLabel) {
 				let title = "";
 				if (typeof navLabel.text === "string") {
-					title =
-						navLabel.text.length > 0
-							? (navLabel.text || "").trim()
-							: "";
+					title = navLabel.text.trim();
 				}
 
-				const attrs = item["@"] as Record<string, string> | undefined;
-				let order = Number(attrs?.playOrder || 0);
+				let order = Number(item["@_playOrder"] || 0);
 				if (isNaN(order)) order = 0;
 
 				let href = "";
 				const content = item.content as Record<string, unknown> | undefined;
-				const contentAttrs = content?.["@"] as Record<string, string> | undefined;
-				if (typeof contentAttrs?.src === "string") {
-					href = contentAttrs.src.trim();
+				if (typeof content?.["@_src"] === "string") {
+					href = (content["@_src"] as string).trim();
 				}
 
 				let element: TocElement = { level, order, title, id: "", href: "" };
@@ -532,7 +506,7 @@ export class EPub extends EventEmitter {
 						element.level = level;
 					} else {
 						element.href = href;
-						element.id = (attrs?.id || "").trim();
+						element.id = String(item["@_id"] || "").trim();
 					}
 
 					output.push(element);
