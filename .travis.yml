@@ -1,7 +1,0 @@
-language: node_js
-node_js:
-  - node # = latest
-install:
-  - npm ci
-script:
-  - npm test
