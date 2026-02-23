@@ -39,12 +39,11 @@
     "test": "node --experimental-strip-types --no-warnings test/test.ts"
   },
   "dependencies": {
-    "adm-zip": "^0.4.11",
-    "fast-xml-parser": "^5.3.7"
+    "fast-xml-parser": "^5.3.7",
+    "jszip": "^3.10.1"
   },
   "devDependencies": {
-    "@types/adm-zip": "^0.5.7",
-    "@types/node": "^22.0.0",
+    "@types/node": "^25.3.0",
     "oxfmt": "^0.35.0",
     "oxlint": "^1.50.0"
   },

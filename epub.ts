@@ -1,39 +1,12 @@
+import { readFile } from "node:fs/promises";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
-import AdmZip from "adm-zip";
+import JSZip from "jszip";
 
 const xmlParser = new XMLParser({
 	ignoreAttributes: false,
 	attributeNamePrefix: "@_",
 	ignoreDeclaration: true,
 });
-
-interface ZipLike {
-	names: string[];
-	count: number;
-	readFile(name: string): Promise<Buffer>;
-}
-
-function openZip(filename: string): ZipLike {
-	const admZip = new AdmZip(filename);
-	const names = admZip.getEntries().map((e) => e.entryName);
-	return {
-		names,
-		count: names.length,
-		readFile(name: string): Promise<Buffer> {
-			return new Promise((resolve, reject) => {
-				const entry = admZip.getEntry(name);
-				if (!entry) {
-					return reject(new Error(`Entry not found: ${name}`));
-				}
-				admZip.readFileAsync(entry, (buffer, _error) => {
-					// `error` is bogus right now, so let's just drop it.
-					// see https://github.com/cthackers/adm-zip/pull/88
-					resolve(buffer as Buffer);
-				});
-			});
-		},
-	};
-}
 
 /**
  * Parse XML string, validate it, strip the root element, and return the children.
@@ -145,13 +118,13 @@ export class EPub {
 	toc: TocElement[] = [];
 	version: string = "2.0";
 
-	zip!: ZipLike;
+	zip!: JSZip;
 	containerFile: string | false = false;
 	mimeFile: string | false = false;
 	rootFile: string | false = false;
 
-	constructor(fname?: string, imageroot?: string, linkroot?: string) {
-		this.filename = fname ?? "";
+	constructor(fname: string, imageroot?: string, linkroot?: string) {
+		this.filename = fname;
 
 		this.imageroot = (imageroot || "/images/").trim();
 		this.linkroot = (linkroot || "/links/").trim();
@@ -176,7 +149,7 @@ export class EPub {
 		this.flow = [];
 		this.toc = [];
 
-		this._open();
+		await this._open();
 		await this._checkMimeType();
 		await this._getRootFiles();
 		const rootfileData = await this._handleRootFile();
@@ -187,20 +160,29 @@ export class EPub {
 		}
 	}
 
-	private _open(): void {
+	private async _readFile(name: string): Promise<Buffer> {
+		const file = this.zip.file(name);
+		if (!file) {
+			throw new Error(`Entry not found: ${name}`);
+		}
+		return file.async("nodebuffer");
+	}
+
+	private async _open(): Promise<void> {
 		try {
-			this.zip = openZip(this.filename);
+			const buf = await readFile(this.filename);
+			this.zip = await JSZip.loadAsync(buf);
 		} catch {
 			throw new Error("Invalid/missing file");
 		}
 
-		if (!this.zip.names || !this.zip.names.length) {
+		if (!Object.keys(this.zip.files).length) {
 			throw new Error("No files in archive");
 		}
 	}
 
 	private async _checkMimeType(): Promise<void> {
-		for (const name of this.zip.names) {
+		for (const name of Object.keys(this.zip.files)) {
 			if (name.toLowerCase() === "mimetype") {
 				this.mimeFile = name;
 				break;
@@ -209,7 +191,7 @@ export class EPub {
 		if (!this.mimeFile) {
 			throw new Error("No mimetype file in archive");
 		}
-		const data = await this.zip.readFile(this.mimeFile);
+		const data = await this._readFile(this.mimeFile);
 		const txt = data.toString("utf-8").toLowerCase().trim();
 		if (txt !== "application/epub+zip") {
 			throw new Error("Unsupported mime type");
@@ -217,7 +199,7 @@ export class EPub {
 	}
 
 	private async _getRootFiles(): Promise<void> {
-		for (const name of this.zip.names) {
+		for (const name of Object.keys(this.zip.files)) {
 			if (name.toLowerCase() === "meta-inf/container.xml") {
 				this.containerFile = name;
 				break;
@@ -227,7 +209,7 @@ export class EPub {
 			throw new Error("No container file in archive");
 		}
 
-		const data = await this.zip.readFile(this.containerFile);
+		const data = await this._readFile(this.containerFile);
 		const xml = data.toString("utf-8").toLowerCase().trim();
 		const result = parseXml(xml);
 
@@ -249,7 +231,7 @@ export class EPub {
 			throw new Error("Empty rootfile");
 		}
 
-		for (const name of this.zip.names) {
+		for (const name of Object.keys(this.zip.files)) {
 			if (name.toLowerCase() === filename) {
 				this.rootFile = name;
 				break;
@@ -262,7 +244,7 @@ export class EPub {
 	}
 
 	private async _handleRootFile(): Promise<Record<string, unknown>> {
-		const data = await this.zip.readFile(this.rootFile as string);
+		const data = await this._readFile(this.rootFile as string);
 		const xml = data.toString("utf-8");
 		return parseXml(xml);
 	}
@@ -433,7 +415,7 @@ export class EPub {
 			idList[this.manifest[key].href as string] = key;
 		}
 
-		const data = await this.zip.readFile(tocHref);
+		const data = await this._readFile(tocHref);
 		const xml = data.toString("utf-8");
 		let result: Record<string, unknown>;
 		try {
@@ -598,7 +580,7 @@ export class EPub {
 		if (mediaType !== "application/xhtml+xml" && mediaType !== "image/svg+xml") {
 			throw new Error("Invalid mime type for chapter");
 		}
-		const data = await this.zip.readFile(this.manifest[id].href as string);
+		const data = await this._readFile(this.manifest[id].href as string);
 		return data ? data.toString("utf-8") : "";
 	}
 
@@ -617,12 +599,12 @@ export class EPub {
 		if (!this.manifest[id]) {
 			throw new Error("File not found");
 		}
-		const data = await this.zip.readFile(this.manifest[id].href as string);
+		const data = await this._readFile(this.manifest[id].href as string);
 		return { data, mimeType: this.manifest[id]["media-type"] as string };
 	}
 
 	async readFile(filename: string, encoding?: BufferEncoding): Promise<Buffer | string> {
-		const data = await this.zip.readFile(filename);
+		const data = await this._readFile(filename);
 		if (encoding) {
 			return data.toString(encoding);
 		}
@@ -630,7 +612,7 @@ export class EPub {
 	}
 
 	hasDRM(): boolean {
-		return this.zip.names.includes("META-INF/encryption.xml");
+		return this.zip.file("META-INF/encryption.xml") !== null;
 	}
 }
 
