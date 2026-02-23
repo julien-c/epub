@@ -218,22 +218,9 @@ export class EPub {
 			throw new Error("No rootfiles found");
 		}
 
-		let filename: string | false = false;
-
-		for (const rf of asArray(rootfiles.rootfile as Record<string, unknown>)) {
+		for (const rf of [rootfiles.rootfile as Record<string, unknown>]) {
 			if (rf["@_media-type"] === "application/oebps-package+xml" && rf["@_full-path"]) {
-				filename = String(rf["@_full-path"]).toLowerCase().trim();
-				break;
-			}
-		}
-
-		if (!filename) {
-			throw new Error("Empty rootfile");
-		}
-
-		for (const name of Object.keys(this.zip.files)) {
-			if (name.toLowerCase() === filename) {
-				this.rootFile = name;
+				this.rootFile = String(rf["@_full-path"]);
 				break;
 			}
 		}
@@ -343,7 +330,7 @@ export class EPub {
 			}
 		}
 
-		for (const meta of asArray(metadata.meta as Record<string, unknown>)) {
+		for (const meta of asArray(metadata.meta) as Record<string, unknown>[]) {
 			const name = meta["@_name"] as string | undefined;
 			const content = meta["@_content"] as string | undefined;
 			const property = meta["@_property"] as string | undefined;
@@ -362,7 +349,7 @@ export class EPub {
 		path.pop();
 		const pathStr = path.join("/");
 
-		for (const item of asArray(manifest.item as Record<string, unknown>)) {
+		for (const item of asArray(manifest.item) as Record<string, unknown>[]) {
 			const element = attrsOf(item);
 			if (element.href && element.href.substring(0, pathStr.length) !== pathStr) {
 				element.href = path.concat([element.href]).join("/");
@@ -378,7 +365,7 @@ export class EPub {
 		path.pop();
 		const pathStr = path.join("/");
 
-		for (const ref of asArray(guide.reference as Record<string, unknown>)) {
+		for (const ref of asArray(guide.reference) as Record<string, unknown>[]) {
 			const element = attrsOf(ref);
 			if (element.href && element.href.substring(0, pathStr.length) !== pathStr) {
 				element.href = path.concat([element.href]).join("/");
@@ -393,7 +380,7 @@ export class EPub {
 			this.spine.toc = this.manifest[toc] || false;
 		}
 
-		for (const itemref of asArray(spine.itemref as Record<string, unknown>)) {
+		for (const itemref of asArray(spine.itemref) as Record<string, unknown>[]) {
 			const idref = itemref["@_idref"] as string | undefined;
 			if (idref) {
 				const element = this.manifest[idref];
@@ -567,6 +554,7 @@ export class EPub {
 		});
 
 		// bring back linebreaks
+		// eslint-disable-next-line no-control-regex
 		s = s.replace(/\u0000/g, "\n").trim();
 
 		return s;
