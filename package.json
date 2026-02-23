@@ -24,12 +24,16 @@
     "url": "http://github.com/julien-c/epub.git"
   },
   "files": [
-    "epub.ts"
+    "epub.ts",
+    "cli.ts"
   ],
   "type": "module",
   "main": "./epub.ts",
   "exports": {
     ".": "./epub.ts"
+  },
+  "bin": {
+    "epub": "./cli.ts"
   },
   "scripts": {
     "format": "oxfmt --write '**/*.ts'",
