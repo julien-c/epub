@@ -10,11 +10,12 @@ function htmlToText(html: string): string {
 		.replace(/<\/div>/gi, "\n")
 		.replace(/<\/li>/gi, "\n")
 		.replace(/<[^>]+>/g, "")
+		.replace(/&#(\d+);/g, (_m, code) => String.fromCodePoint(Number(code)))
+		.replace(/&#x([0-9a-fA-F]+);/g, (_m, code) => String.fromCodePoint(parseInt(code, 16)))
 		.replace(/&amp;/g, "&")
 		.replace(/&lt;/g, "<")
 		.replace(/&gt;/g, ">")
 		.replace(/&quot;/g, '"')
-		.replace(/&#39;/g, "'")
 		.replace(/&nbsp;/g, " ")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
