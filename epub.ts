@@ -217,7 +217,7 @@ export class EPub {
 		}
 
 		const data = await this._readFile(this.containerFile);
-		const xml = data.toString("utf-8").toLowerCase().trim();
+		const xml = data.toString("utf-8").trim();
 		const result = parseXml(xml);
 
 		const rootfiles = result.rootfiles as Record<string, unknown> | undefined;
@@ -225,8 +225,11 @@ export class EPub {
 			throw new Error("No rootfiles found");
 		}
 
-		for (const rf of [rootfiles.rootfile as Record<string, unknown>]) {
-			if (rf["@_media-type"] === "application/oebps-package+xml" && rf["@_full-path"]) {
+		for (const rf of asArray(rootfiles.rootfile) as Record<string, unknown>[]) {
+			if (
+				String(rf["@_media-type"]).toLowerCase() === "application/oebps-package+xml" &&
+				rf["@_full-path"]
+			) {
 				this.rootFile = String(rf["@_full-path"]);
 				break;
 			}
