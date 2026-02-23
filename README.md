@@ -6,12 +6,14 @@
 
 ## CLI
 
-```bash
-npx epub https://github.com/progit/progit2/releases/download/2.1.449/progit.epub
-```
+Read an Epub directly from your terminal 🔥
 
 ```bash
-pnpx epub https://github.com/progit/progit2/releases/download/2.1.449/progit.epub
+URL="https://github.com/progit/progit2/releases/download/2.1.449/progit.epub"
+
+npx epub "$URL"
+# or
+pnpx epub "$URL"
 ```
 
 ## Installation
