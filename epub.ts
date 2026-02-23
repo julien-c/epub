@@ -1,4 +1,3 @@
-import { EventEmitter } from "node:events";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import AdmZip from "adm-zip";
 
@@ -11,7 +10,7 @@ const xmlParser = new XMLParser({
 interface ZipLike {
 	names: string[];
 	count: number;
-	readFile(name: string, cb: (err: Error | null, data: Buffer) => void): void;
+	readFile(name: string): Promise<Buffer>;
 }
 
 function openZip(filename: string): ZipLike {
@@ -20,29 +19,20 @@ function openZip(filename: string): ZipLike {
 	return {
 		names,
 		count: names.length,
-		readFile(name: string, cb: (err: Error | null, data: Buffer) => void) {
-			const entry = admZip.getEntry(name);
-			if (!entry) {
-				return cb(new Error(`Entry not found: ${name}`), Buffer.alloc(0));
-			}
-			admZip.readFileAsync(entry, (buffer, error) => {
-				// `error` is bogus right now, so let's just drop it.
-				// see https://github.com/cthackers/adm-zip/pull/88
-				cb(null, buffer as Buffer);
+		readFile(name: string): Promise<Buffer> {
+			return new Promise((resolve, reject) => {
+				const entry = admZip.getEntry(name);
+				if (!entry) {
+					return reject(new Error(`Entry not found: ${name}`));
+				}
+				admZip.readFileAsync(entry, (buffer, _error) => {
+					// `error` is bogus right now, so let's just drop it.
+					// see https://github.com/cthackers/adm-zip/pull/88
+					resolve(buffer as Buffer);
+				});
 			});
 		},
 	};
-}
-
-function readFileAsync(zip: ZipLike, name: string): Promise<Buffer> {
-	return new Promise((resolve, reject) => {
-		zip.readFile(name, (err, data) => {
-			if (err) {
-				return reject(err);
-			}
-			resolve(data);
-		});
-	});
 }
 
 /**
@@ -124,10 +114,6 @@ export interface Metadata {
 	[key: string]: unknown;
 }
 
-export interface ParseOptions {
-	xml2jsOptions?: Record<string, unknown>;
-}
-
 function extractIdentifiers(val: unknown, out: Metadata): void {
 	if (typeof val !== "object" || val == null) {
 		return;
@@ -143,7 +129,7 @@ function extractIdentifiers(val: unknown, out: Metadata): void {
 	}
 }
 
-export class EPub extends EventEmitter {
+export class EPub {
 	filename: string;
 	imageroot: string;
 	linkroot: string;
@@ -165,8 +151,6 @@ export class EPub extends EventEmitter {
 	rootFile: string | false = false;
 
 	constructor(fname?: string, imageroot?: string, linkroot?: string) {
-		super();
-
 		this.filename = fname ?? "";
 
 		this.imageroot = (imageroot || "/images/").trim();
@@ -180,7 +164,7 @@ export class EPub extends EventEmitter {
 		}
 	}
 
-	parse(options: ParseOptions = {}): void {
+	async parse(): Promise<void> {
 		this.containerFile = false;
 		this.mimeFile = false;
 		this.rootFile = false;
@@ -192,24 +176,14 @@ export class EPub extends EventEmitter {
 		this.flow = [];
 		this.toc = [];
 
-		this._parse();
-	}
+		this._open();
+		await this._checkMimeType();
+		await this._getRootFiles();
+		const rootfileData = await this._handleRootFile();
+		this._parseRootFile(rootfileData);
 
-	private async _parse(): Promise<void> {
-		try {
-			this._open();
-			await this._checkMimeType();
-			await this._getRootFiles();
-			const rootfileData = await this._handleRootFile();
-			this._parseRootFile(rootfileData);
-
-			if (this.spine.toc) {
-				await this._parseTOC();
-			}
-
-			this.emit("end");
-		} catch (err) {
-			this.emit("error", err instanceof Error ? err : new Error(String(err)));
+		if (this.spine.toc) {
+			await this._parseTOC();
 		}
 	}
 
@@ -235,7 +209,7 @@ export class EPub extends EventEmitter {
 		if (!this.mimeFile) {
 			throw new Error("No mimetype file in archive");
 		}
-		const data = await readFileAsync(this.zip, this.mimeFile);
+		const data = await this.zip.readFile(this.mimeFile);
 		const txt = data.toString("utf-8").toLowerCase().trim();
 		if (txt !== "application/epub+zip") {
 			throw new Error("Unsupported mime type");
@@ -253,7 +227,7 @@ export class EPub extends EventEmitter {
 			throw new Error("No container file in archive");
 		}
 
-		const data = await readFileAsync(this.zip, this.containerFile);
+		const data = await this.zip.readFile(this.containerFile);
 		const xml = data.toString("utf-8").toLowerCase().trim();
 		const result = parseXml(xml);
 
@@ -288,7 +262,7 @@ export class EPub extends EventEmitter {
 	}
 
 	private async _handleRootFile(): Promise<Record<string, unknown>> {
-		const data = await readFileAsync(this.zip, this.rootFile as string);
+		const data = await this.zip.readFile(this.rootFile as string);
 		const xml = data.toString("utf-8");
 		return parseXml(xml);
 	}
@@ -459,7 +433,7 @@ export class EPub extends EventEmitter {
 			idList[this.manifest[key].href as string] = key;
 		}
 
-		const data = await readFileAsync(this.zip, tocHref);
+		const data = await this.zip.readFile(tocHref);
 		const xml = data.toString("utf-8");
 		let result: Record<string, unknown>;
 		try {
@@ -537,157 +511,122 @@ export class EPub extends EventEmitter {
 		return output;
 	}
 
-	getChapter(id: string, callback: (error: Error | null, text?: string) => void): void {
-		this.getChapterRaw(id, (err, str) => {
-			if (err) {
-				return callback(err);
-			}
+	async getChapter(id: string): Promise<string> {
+		const str = await this.getChapterRaw(id);
 
-			const path = (this.rootFile as string).split("/");
-			path.pop();
-			const keys = Object.keys(this.manifest);
+		const path = (this.rootFile as string).split("/");
+		path.pop();
+		const keys = Object.keys(this.manifest);
 
-			// remove linebreaks (no multi line matches in JS regex!)
-			let s = (str as string).replace(/\r?\n/g, "\u0000");
+		// remove linebreaks (no multi line matches in JS regex!)
+		let s = str.replace(/\r?\n/g, "\u0000");
 
-			// keep only <body> contents
-			s.replace(/<body[^>]*?>(.*)<\/body[^>]*?>/i, (_o, d) => {
-				s = d.trim();
-				return "";
-			});
-
-			// remove <script> blocks
-			s = s.replace(/<script[^>]*?>(.*?)<\/script[^>]*?>/gi, () => "");
-
-			// remove <style> blocks
-			s = s.replace(/<style[^>]*?>(.*?)<\/style[^>]*?>/gi, () => "");
-
-			// remove onEvent handlers
-			s = s.replace(/(\s)(on\w+)(\s*=\s*["']?[^"'\s>]*?["'\s>])/g, (_o, a, b, c) => {
-				return a + "skip-" + b + c;
-			});
-
-			// replace images
-			s = s.replace(/(\ssrc\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (_o, a, b, c) => {
-				const img = path.concat([b]).join("/").trim();
-				let element: Record<string, unknown> | undefined;
-
-				for (const k of keys) {
-					if (this.manifest[k].href === img) {
-						element = this.manifest[k];
-						break;
-					}
-				}
-
-				if (element) {
-					return a + this.imageroot + element.id + "/" + img + c;
-				}
-				return "";
-			});
-
-			// replace links
-			s = s.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (_o, a, b, c) => {
-				const linkparts = b ? b.split("#") : [];
-				let link = linkparts.length
-					? path
-							.concat([linkparts.shift() || ""])
-							.join("/")
-							.trim()
-					: "";
-				let element: Record<string, unknown> | undefined;
-
-				for (const k of keys) {
-					if ((this.manifest[k].href as string).split("#")[0] === link) {
-						element = this.manifest[k];
-						break;
-					}
-				}
-
-				if (linkparts.length) {
-					link += "#" + linkparts.join("#");
-				}
-
-				if (element) {
-					return a + this.linkroot + element.id + "/" + link + c;
-				}
-				return a + b + c;
-			});
-
-			// bring back linebreaks
-			s = s.replace(/\u0000/g, "\n").trim();
-
-			callback(null, s);
+		// keep only <body> contents
+		s.replace(/<body[^>]*?>(.*)<\/body[^>]*?>/i, (_o, d) => {
+			s = d.trim();
+			return "";
 		});
-	}
 
-	getChapterRaw(id: string, callback: (error: Error | null, text?: string) => void): void {
-		if (this.manifest[id]) {
-			const mediaType = this.manifest[id]["media-type"] as string;
-			if (mediaType !== "application/xhtml+xml" && mediaType !== "image/svg+xml") {
-				return callback(new Error("Invalid mime type for chapter"));
+		// remove <script> blocks
+		s = s.replace(/<script[^>]*?>(.*?)<\/script[^>]*?>/gi, () => "");
+
+		// remove <style> blocks
+		s = s.replace(/<style[^>]*?>(.*?)<\/style[^>]*?>/gi, () => "");
+
+		// remove onEvent handlers
+		s = s.replace(/(\s)(on\w+)(\s*=\s*["']?[^"'\s>]*?["'\s>])/g, (_o, a, b, c) => {
+			return a + "skip-" + b + c;
+		});
+
+		// replace images
+		s = s.replace(/(\ssrc\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (_o, a, b, c) => {
+			const img = path.concat([b]).join("/").trim();
+			let element: Record<string, unknown> | undefined;
+
+			for (const k of keys) {
+				if (this.manifest[k].href === img) {
+					element = this.manifest[k];
+					break;
+				}
 			}
 
-			this.zip.readFile(this.manifest[id].href as string, (err, data) => {
-				if (err) {
-					return callback(new Error("Reading archive failed"));
-				}
-				callback(null, data ? data.toString("utf-8") : "");
-			});
-		} else {
-			callback(new Error("File not found"));
-		}
-	}
-
-	getImage(
-		id: string,
-		callback: (error: Error | null, data?: Buffer, mimeType?: string) => void,
-	): void {
-		if (this.manifest[id]) {
-			const mediaType = ((this.manifest[id]["media-type"] as string) || "").toLowerCase().trim();
-			if (!mediaType.startsWith("image/")) {
-				return callback(new Error("Invalid mime type for image"));
+			if (element) {
+				return a + this.imageroot + element.id + "/" + img + c;
 			}
-			this.getFile(id, callback);
-		} else {
-			callback(new Error("File not found"));
-		}
+			return "";
+		});
+
+		// replace links
+		s = s.replace(/(\shref\s*=\s*["']?)([^"'\s>]*?)(["'\s>])/g, (_o, a, b, c) => {
+			const linkparts = b ? b.split("#") : [];
+			let link = linkparts.length
+				? path
+						.concat([linkparts.shift() || ""])
+						.join("/")
+						.trim()
+				: "";
+			let element: Record<string, unknown> | undefined;
+
+			for (const k of keys) {
+				if ((this.manifest[k].href as string).split("#")[0] === link) {
+					element = this.manifest[k];
+					break;
+				}
+			}
+
+			if (linkparts.length) {
+				link += "#" + linkparts.join("#");
+			}
+
+			if (element) {
+				return a + this.linkroot + element.id + "/" + link + c;
+			}
+			return a + b + c;
+		});
+
+		// bring back linebreaks
+		s = s.replace(/\u0000/g, "\n").trim();
+
+		return s;
 	}
 
-	getFile(
-		id: string,
-		callback: (error: Error | null, data?: Buffer, mimeType?: string) => void,
-	): void {
-		if (this.manifest[id]) {
-			this.zip.readFile(this.manifest[id].href as string, (err, data) => {
-				if (err) {
-					return callback(new Error("Reading archive failed"));
-				}
-				callback(null, data, this.manifest[id]["media-type"] as string);
-			});
-		} else {
-			callback(new Error("File not found"));
+	async getChapterRaw(id: string): Promise<string> {
+		if (!this.manifest[id]) {
+			throw new Error("File not found");
 		}
+		const mediaType = this.manifest[id]["media-type"] as string;
+		if (mediaType !== "application/xhtml+xml" && mediaType !== "image/svg+xml") {
+			throw new Error("Invalid mime type for chapter");
+		}
+		const data = await this.zip.readFile(this.manifest[id].href as string);
+		return data ? data.toString("utf-8") : "";
 	}
 
-	readFile(
-		filename: string,
-		options?: string | ((err: Error | null, data?: Buffer | string) => void),
-		callback_?: (err: Error | null, data?: Buffer | string) => void,
-	): void {
-		const callback = (callback_ ?? options) as (err: Error | null, data?: Buffer | string) => void;
-
-		if (typeof options === "function" || !options) {
-			this.zip.readFile(filename, callback as (err: Error | null, data: Buffer) => void);
-		} else if (typeof options === "string") {
-			this.zip.readFile(filename, (err, data) => {
-				if (err) {
-					return callback(new Error("Reading archive failed"));
-				}
-				callback(null, data.toString(options as BufferEncoding));
-			});
-		} else {
-			throw new TypeError("Bad arguments");
+	async getImage(id: string): Promise<{ data: Buffer; mimeType: string }> {
+		if (!this.manifest[id]) {
+			throw new Error("File not found");
 		}
+		const mediaType = ((this.manifest[id]["media-type"] as string) || "").toLowerCase().trim();
+		if (!mediaType.startsWith("image/")) {
+			throw new Error("Invalid mime type for image");
+		}
+		return this.getFile(id);
+	}
+
+	async getFile(id: string): Promise<{ data: Buffer; mimeType: string }> {
+		if (!this.manifest[id]) {
+			throw new Error("File not found");
+		}
+		const data = await this.zip.readFile(this.manifest[id].href as string);
+		return { data, mimeType: this.manifest[id]["media-type"] as string };
+	}
+
+	async readFile(filename: string, encoding?: BufferEncoding): Promise<Buffer | string> {
+		const data = await this.zip.readFile(filename);
+		if (encoding) {
+			return data.toString(encoding);
+		}
+		return data;
 	}
 
 	hasDRM(): boolean {

@@ -1,12 +1,10 @@
 var EPub = require("../epub");
 
-var epub = new EPub("alice.epub", "/imagewebroot/", "/articlewebroot/");
-epub.on("error", function (err) {
-	console.log("ERROR\n-----");
-	throw err;
-});
+async function main() {
+	var epub = new EPub("alice.epub", "/imagewebroot/", "/articlewebroot/");
 
-epub.on("end", function (err) {
+	await epub.parse();
+
 	console.log("METADATA:\n");
 	console.log(epub.metadata);
 
@@ -17,21 +15,9 @@ epub.on("end", function (err) {
 	console.log(epub.toc);
 
 	// get first chapter
-	epub.getChapter(epub.spine.contents[0].id, function (err, data) {
-		if (err) {
-			console.log(err);
-			return;
-		}
-		console.log("\nFIRST CHAPTER:\n");
-		console.log(data.substr(0, 512) + "..."); // first 512 bytes
-	});
+	var data = await epub.getChapter(epub.spine.contents[0].id);
+	console.log("\nFIRST CHAPTER:\n");
+	console.log(data.substr(0, 512) + "..."); // first 512 bytes
+}
 
-	/*
-    epub.getImage(image_id, function(err, data, mimeType){
-        console.log(err || data);
-        console.log(mimeType)
-    });
-    */
-});
-
-epub.parse();
+main();

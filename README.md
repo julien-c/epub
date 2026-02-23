@@ -26,17 +26,13 @@ Where
   * **imageWebRoot** is the prefix for image URL's. If it's */images/* then the actual URL (inside chapter HTML `<img>` blocks) is going to be */images/IMG_ID/IMG_FILENAME*, `IMG_ID` can be used to fetch the image form the ebook with `getImage`. Default: `/images/`
   * **chapterWebRoot** is the prefix for chapter URL's. If it's */chapter/* then the actual URL (inside chapter HTML `<a>` links) is going to be */chapters/CHAPTER_ID/CHAPTER_FILENAME*, `CHAPTER_ID` can be used to fetch the image form the ebook with `getChapter`. Default: `/links/`
  
-Before the contents of the ebook can be read, it must be opened (`EPub` is an `EventEmitter`).
+Before the contents of the ebook can be read, it must be parsed:
 
 ```js
-epub.on('end', function() {
-  // epub is initialized now
-  console.log(epub.metadata.title)
+await epub.parse()
+console.log(epub.metadata.title)
 
-  epub.getChapter('chapter_id', (err, text) => {})
-})
-
-epub.parse()
+const text = await epub.getChapter('chapter_id')
 ```
 
 ## metadata
@@ -73,30 +69,30 @@ Chapter `id` is needed to load the chapters `getChapter`
 *toc* is a property of the *epub* object and indicates a list of titles/urls for the TOC. Actual chapter and it's ID needs to be detected with the `href` property
 
 
-## getChapter(chapter_id, callback)
+## getChapter(chapter_id)
 
 Load chapter text from the ebook.
 
 ```js
-epub.getChapter('chapter1', (error, text) => {})
+const text = await epub.getChapter('chapter1')
 ```
 
-## getChapterRaw(chapter_id, callback)
+## getChapterRaw(chapter_id)
 
 Load raw chapter text from the ebook.
 
-## getImage(image_id, callback)
+## getImage(image_id)
 
 Load image (as a Buffer value) from the ebook.
 
 ```js
-epub.getImage('image1', (error, img, mimeType) => {})
+const { data, mimeType } = await epub.getImage('image1')
 ```
 
-## getFile(file_id, callback)
+## getFile(file_id)
 
 Load any file (as a Buffer value) from the ebook.
 
 ```js
-epub.getFile('css1', (error, data, mimeType) => {})
+const { data, mimeType } = await epub.getFile('css1')
 ```

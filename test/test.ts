@@ -2,14 +2,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { EPub } from "../epub.ts";
 
-function parseEpub(epub: EPub): Promise<void> {
-	return new Promise((resolve, reject) => {
-		epub.on("end", resolve);
-		epub.on("error", reject);
-		epub.parse();
-	});
-}
-
 describe("EPub", () => {
 	it("init", () => {
 		const epub = new EPub("./example/alice.epub");
@@ -19,7 +11,7 @@ describe("EPub", () => {
 	it("basic parsing", async () => {
 		const epub = new EPub("./example/alice.epub");
 
-		await parseEpub(epub);
+		await epub.parse();
 
 		assert.ok(epub.metadata.title);
 		assert.equal(epub.metadata.title, "Alice's Adventures in Wonderland");
@@ -46,7 +38,7 @@ describe("EPub", () => {
 		const epub = new EPub("./example/alice_broken.epub");
 
 		try {
-			await parseEpub(epub);
+			await epub.parse();
 		} catch (err) {
 			assert.ok((err as Error).message.includes("Parsing container XML failed"));
 			return;
