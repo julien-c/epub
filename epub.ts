@@ -110,7 +110,7 @@ function extractIdentifiers(val: unknown, out: Metadata): void {
 }
 
 export class EPub {
-	filename: string;
+	input: string | Buffer | ArrayBuffer;
 	imageroot: string;
 	linkroot: string;
 
@@ -130,8 +130,8 @@ export class EPub {
 	mimeFile: string | false = false;
 	rootFile: string | false = false;
 
-	constructor(fname: string, imageroot?: string, linkroot?: string) {
-		this.filename = fname;
+	constructor(input: string | Buffer | ArrayBuffer, imageroot?: string, linkroot?: string) {
+		this.input = input;
 
 		this.imageroot = (imageroot || "/images/").trim();
 		this.linkroot = (linkroot || "/links/").trim();
@@ -177,7 +177,7 @@ export class EPub {
 
 	private async _open(): Promise<void> {
 		try {
-			const buf = await readFile(this.filename);
+			const buf = typeof this.input === "string" ? await readFile(this.input) : this.input;
 			this.zip = await JSZip.loadAsync(buf);
 		} catch {
 			throw new Error("Invalid/missing file");
