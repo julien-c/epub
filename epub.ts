@@ -37,7 +37,9 @@ function openZip(filename: string): ZipLike {
 function readFileAsync(zip: ZipLike, name: string): Promise<Buffer> {
 	return new Promise((resolve, reject) => {
 		zip.readFile(name, (err, data) => {
-			if (err) return reject(err);
+			if (err) {
+				return reject(err);
+			}
 			resolve(data);
 		});
 	});
@@ -55,15 +57,23 @@ function parseXml(xml: string): Record<string, unknown> {
 	const raw = xmlParser.parse(xml) as Record<string, unknown>;
 	// Strip root element (equivalent to xml2js explicitRoot: false)
 	const keys = Object.keys(raw);
-	if (keys.length === 1) return raw[keys[0]] as Record<string, unknown>;
+	if (keys.length === 1) {
+		return raw[keys[0]] as Record<string, unknown>;
+	}
 	return raw;
 }
 
 /** Extract text content from a parsed XML value (string, or object with #text). */
 function textOf(val: unknown): string {
-	if (val == null) return "";
-	if (typeof val === "string") return val.trim();
-	if (typeof val === "number") return String(val);
+	if (val == null) {
+		return "";
+	}
+	if (typeof val === "string") {
+		return val.trim();
+	}
+	if (typeof val === "number") {
+		return String(val);
+	}
 	if (typeof val === "object" && "#text" in (val as object)) {
 		return String((val as Record<string, unknown>)["#text"] ?? "").trim();
 	}
@@ -83,7 +93,9 @@ function attrsOf(obj: Record<string, unknown>): Record<string, string> {
 
 /** Ensure value is an array. */
 function asArray<T>(val: T | T[] | undefined): T[] {
-	if (val == null) return [];
+	if (val == null) {
+		return [];
+	}
 	return Array.isArray(val) ? val : [val];
 }
 
@@ -117,7 +129,9 @@ export interface ParseOptions {
 }
 
 function extractIdentifiers(val: unknown, out: Metadata): void {
-	if (typeof val !== "object" || val == null) return;
+	if (typeof val !== "object" || val == null) {
+		return;
+	}
 	const obj = val as Record<string, unknown>;
 	const scheme = obj["@_opf:scheme"] as string | undefined;
 	const id = obj["@_id"] as string | undefined;
@@ -283,7 +297,9 @@ export class EPub extends EventEmitter {
 		this.version = String(rootfile["@_version"] || "2.0");
 
 		for (const fullKey of Object.keys(rootfile)) {
-			if (fullKey.startsWith("@_")) continue;
+			if (fullKey.startsWith("@_")) {
+				continue;
+			}
 			const key = (fullKey.split(":").pop() || "").toLowerCase().trim();
 			switch (key) {
 				case "metadata":
@@ -304,7 +320,9 @@ export class EPub extends EventEmitter {
 
 	private _parseMetadata(metadata: Record<string, unknown>): void {
 		for (const fullKey of Object.keys(metadata)) {
-			if (fullKey.startsWith("@_")) continue;
+			if (fullKey.startsWith("@_")) {
+				continue;
+			}
 			const metadataValue = metadata[fullKey];
 			const key = (fullKey.split(":").pop() || "").toLowerCase().trim();
 
@@ -465,7 +483,9 @@ export class EPub extends EventEmitter {
 		idList: Record<string, string>,
 		level: number = 0,
 	): TocElement[] {
-		if (level > 7) return [];
+		if (level > 7) {
+			return [];
+		}
 
 		const output: TocElement[] = [];
 		const items = Array.isArray(branch) ? branch : [branch];
@@ -479,7 +499,9 @@ export class EPub extends EventEmitter {
 				}
 
 				let order = Number(item["@_playOrder"] || 0);
-				if (isNaN(order)) order = 0;
+				if (isNaN(order)) {
+					order = 0;
+				}
 
 				let href = "";
 				const content = item.content as Record<string, unknown> | undefined;
@@ -517,7 +539,9 @@ export class EPub extends EventEmitter {
 
 	getChapter(id: string, callback: (error: Error | null, text?: string) => void): void {
 		this.getChapterRaw(id, (err, str) => {
-			if (err) return callback(err);
+			if (err) {
+				return callback(err);
+			}
 
 			const path = (this.rootFile as string).split("/");
 			path.pop();
@@ -604,7 +628,9 @@ export class EPub extends EventEmitter {
 			}
 
 			this.zip.readFile(this.manifest[id].href as string, (err, data) => {
-				if (err) return callback(new Error("Reading archive failed"));
+				if (err) {
+					return callback(new Error("Reading archive failed"));
+				}
 				callback(null, data ? data.toString("utf-8") : "");
 			});
 		} else {
@@ -633,7 +659,9 @@ export class EPub extends EventEmitter {
 	): void {
 		if (this.manifest[id]) {
 			this.zip.readFile(this.manifest[id].href as string, (err, data) => {
-				if (err) return callback(new Error("Reading archive failed"));
+				if (err) {
+					return callback(new Error("Reading archive failed"));
+				}
 				callback(null, data, this.manifest[id]["media-type"] as string);
 			});
 		} else {
@@ -652,7 +680,9 @@ export class EPub extends EventEmitter {
 			this.zip.readFile(filename, callback as (err: Error | null, data: Buffer) => void);
 		} else if (typeof options === "string") {
 			this.zip.readFile(filename, (err, data) => {
-				if (err) return callback(new Error("Reading archive failed"));
+				if (err) {
+					return callback(new Error("Reading archive failed"));
+				}
 				callback(null, data.toString(options as BufferEncoding));
 			});
 		} else {
