@@ -23,3 +23,14 @@ for (const entry of epub.toc) {
 	const indent = "  ".repeat(entry.level + 1);
 	console.log(`${indent}${entry.title}`);
 }
+
+console.log("\n---\n");
+for (const chapter of epub.flow) {
+	try {
+		const text = await epub.getChapter(chapter.id);
+		console.log(text);
+		console.log("\n---\n");
+	} catch {
+		// skip non-chapter files (images, css, etc.)
+	}
+}

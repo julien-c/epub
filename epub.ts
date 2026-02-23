@@ -62,6 +62,13 @@ function asArray<T>(val: T | T[] | undefined): T[] {
 	return Array.isArray(val) ? val : [val];
 }
 
+export interface ManifestItem {
+	id: string;
+	href: string;
+	"media-type": string;
+	[key: string]: unknown;
+}
+
 export interface TocElement {
 	level: number;
 	order: number;
@@ -108,13 +115,13 @@ export class EPub {
 	linkroot: string;
 
 	metadata: Metadata = {} as Metadata;
-	manifest: Record<string, Record<string, unknown>> = {};
-	guide: Record<string, unknown>[] = [];
-	spine: { toc: Record<string, unknown> | false; contents: Record<string, unknown>[] } = {
+	manifest: Record<string, ManifestItem> = {};
+	guide: Record<string, string>[] = [];
+	spine: { toc: ManifestItem | false; contents: ManifestItem[] } = {
 		toc: false,
 		contents: [],
 	};
-	flow: Record<string, unknown>[] = [];
+	flow: ManifestItem[] = [];
 	toc: TocElement[] = [];
 	version: string = "2.0";
 
@@ -350,7 +357,7 @@ export class EPub {
 		const pathStr = path.join("/");
 
 		for (const item of asArray(manifest.item) as Record<string, unknown>[]) {
-			const element = attrsOf(item);
+			const element = attrsOf(item) as unknown as ManifestItem;
 			if (element.href && element.href.substring(0, pathStr.length) !== pathStr) {
 				element.href = path.concat([element.href]).join("/");
 			}
@@ -393,7 +400,7 @@ export class EPub {
 	}
 
 	private async _parseTOC(): Promise<void> {
-		const tocHref = (this.spine.toc as Record<string, unknown>).href as string;
+		const tocHref = (this.spine.toc as ManifestItem).href;
 		const path = tocHref.split("/");
 		path.pop();
 
@@ -459,7 +466,7 @@ export class EPub {
 					element.href = href;
 
 					if (idList[element.href]) {
-						element = this.manifest[idList[element.href]] as unknown as TocElement;
+						element = this.manifest[idList[element.href]] as ManifestItem & TocElement;
 						element.title = title;
 						element.order = order;
 						element.level = level;
@@ -564,11 +571,11 @@ export class EPub {
 		if (!this.manifest[id]) {
 			throw new Error("File not found");
 		}
-		const mediaType = this.manifest[id]["media-type"] as string;
+		const mediaType = this.manifest[id]["media-type"];
 		if (mediaType !== "application/xhtml+xml" && mediaType !== "image/svg+xml") {
 			throw new Error("Invalid mime type for chapter");
 		}
-		const data = await this._readFile(this.manifest[id].href as string);
+		const data = await this._readFile(this.manifest[id].href);
 		return data ? data.toString("utf-8") : "";
 	}
 
@@ -576,7 +583,7 @@ export class EPub {
 		if (!this.manifest[id]) {
 			throw new Error("File not found");
 		}
-		const mediaType = ((this.manifest[id]["media-type"] as string) || "").toLowerCase().trim();
+		const mediaType = (this.manifest[id]["media-type"] || "").toLowerCase().trim();
 		if (!mediaType.startsWith("image/")) {
 			throw new Error("Invalid mime type for image");
 		}
@@ -587,8 +594,8 @@ export class EPub {
 		if (!this.manifest[id]) {
 			throw new Error("File not found");
 		}
-		const data = await this._readFile(this.manifest[id].href as string);
-		return { data, mimeType: this.manifest[id]["media-type"] as string };
+		const data = await this._readFile(this.manifest[id].href);
+		return { data, mimeType: this.manifest[id]["media-type"] };
 	}
 
 	async readFile(filename: string, encoding?: BufferEncoding): Promise<Buffer | string> {
