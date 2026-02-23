@@ -40,7 +40,7 @@
     "format:check": "oxfmt --check '**/*.ts'",
     "lint": "oxlint -c oxlint.json --fix",
     "lint:check": "oxlint -c oxlint.json",
-    "test": "node --experimental-strip-types --no-warnings test/test.ts"
+    "test": "node --experimental-strip-types test/test.ts"
   },
   "dependencies": {
     "fast-xml-parser": "^5.3.7",
