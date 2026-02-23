@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { writeFile, mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { EPub } from "./epub.ts";
 
 function htmlToText(html: string): string {
@@ -20,10 +23,24 @@ function htmlToText(html: string): string {
 		.trim();
 }
 
-const file = process.argv[2];
-if (!file) {
-	console.error("Usage: epub <file.epub>");
+const arg = process.argv[2];
+if (!arg) {
+	console.error("Usage: epub <file.epub | url>");
 	process.exit(1);
+}
+
+let file: string;
+if (arg.startsWith("http://") || arg.startsWith("https://")) {
+	const res = await fetch(arg);
+	if (!res.ok) {
+		console.error(`Failed to download: ${res.status} ${res.statusText}`);
+		process.exit(1);
+	}
+	const tmp = await mkdtemp(join(tmpdir(), "epub-"));
+	file = join(tmp, "book.epub");
+	await writeFile(file, Buffer.from(await res.arrayBuffer()));
+} else {
+	file = arg;
 }
 
 const epub = new EPub(file);

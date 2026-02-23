@@ -4,6 +4,16 @@
 
 **NB!** Only ebooks in UTF-8 are currently supported!.
 
+## CLI
+
+```bash
+npx epub https://github.com/progit/progit2/releases/download/2.1.449/progit.epub
+```
+
+```bash
+pnpx epub https://github.com/progit/progit2/releases/download/2.1.449/progit.epub
+```
+
 ## Installation
 
 ```bash
